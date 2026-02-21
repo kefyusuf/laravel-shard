@@ -53,6 +53,9 @@ return [
     // Shard metadata table
     'metadata_table' => env('REDIS_SHARD_METADATA_TABLE', 'shard_metadata'),
 
+    // Persistent shard registry path for dynamic shard provisioning
+    'registry_path' => env('REDIS_SHARD_REGISTRY_PATH', storage_path('app/redis_sharding_registry.json')),
+
     // Tables monitored by health/status/monitoring commands
     'monitored_tables' => ['users', 'orders', 'products'],
 
