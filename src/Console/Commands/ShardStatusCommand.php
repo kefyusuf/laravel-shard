@@ -116,7 +116,7 @@ class ShardStatusCommand extends Command
             $data[] = [
                 'Shard' => $shardName,
                 'Keys' => $keyCount,
-                'Percentage' => $totalKeys > 0 ? round(($keyCount / $totalKeys) * 100, 2) . '%' : '0%',
+                'Percentage' => '0%',
             ];
         }
 
