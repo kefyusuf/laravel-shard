@@ -17,7 +17,8 @@ class ShardCleanupCommand extends Command
      */
     protected $signature = 'shard:cleanup
                             {--dry-run : Show what would be cleaned without deleting}
-                            {--table=* : Restrict cleanup to specific table names}';
+                            {--table=* : Restrict cleanup to specific table names}
+                            {--format=table : Output format (table, json)}';
 
     /**
      * The console command description.
@@ -32,6 +33,7 @@ class ShardCleanupCommand extends Command
     public function handle(ShardLocatorInterface $locator): int
     {
         $dryRun = (bool) $this->option('dry-run');
+        $format = (string) $this->option('format');
         $targetTables = collect((array) $this->option('table'))
             ->filter(fn ($table) => is_string($table) && $table !== '')
             ->values()
@@ -52,15 +54,12 @@ class ShardCleanupCommand extends Command
         $keys = $redis->keys('shard:*');
 
         foreach ($keys as $key) {
-            $parts = explode(':', (string) $key, 3);
-            if (count($parts) !== 3) {
+            $parsed = $this->parseShardRedisKey((string) $key);
+            if ($parsed === null) {
                 continue;
             }
 
-            [$prefix, $table, $recordKey] = $parts;
-            if ($prefix !== 'shard') {
-                continue;
-            }
+            [$table, $recordKey] = $parsed;
 
             if (!empty($targetTables) && !in_array($table, $targetTables, true)) {
                 continue;
@@ -74,7 +73,7 @@ class ShardCleanupCommand extends Command
                 $orphanedKeys++;
 
                 if (!$dryRun) {
-                    $redis->del($key);
+                    $redis->del("shard:{$table}:{$recordKey}");
                 }
             }
         }
@@ -100,10 +99,53 @@ class ShardCleanupCommand extends Command
             }
         }
 
-        $this->line("Scanned shard keys: {$scannedKeys}");
-        $this->line("Orphaned keys " . ($dryRun ? 'found' : 'cleaned') . ": {$orphanedKeys}");
-        $this->line("Stale shard-map entries " . ($dryRun ? 'found' : 'cleaned') . ": {$staleMapEntries}");
+        if ($format === 'json') {
+            $this->line(json_encode(
+                $this->buildReportPayload($dryRun, $scannedKeys, $orphanedKeys, $staleMapEntries),
+                JSON_PRETTY_PRINT
+            ));
+        } else {
+            $this->line("Scanned shard keys: {$scannedKeys}");
+            $this->line("Orphaned keys " . ($dryRun ? 'found' : 'cleaned') . ": {$orphanedKeys}");
+            $this->line("Stale shard-map entries " . ($dryRun ? 'found' : 'cleaned') . ": {$staleMapEntries}");
+        }
 
         return 0;
+    }
+
+    /**
+     * @return array<string, int|bool>
+     */
+    protected function buildReportPayload(
+        bool $dryRun,
+        int $scannedKeys,
+        int $orphanedKeys,
+        int $staleMapEntries
+    ): array {
+        return [
+            'dry_run' => $dryRun,
+            'scanned_keys' => $scannedKeys,
+            'orphaned_keys' => $orphanedKeys,
+            'stale_map_entries' => $staleMapEntries,
+        ];
+    }
+
+    /**
+     * @return array{0:string,1:string}|null
+     */
+    protected function parseShardRedisKey(string $rawKey): ?array
+    {
+        $markerPosition = strpos($rawKey, 'shard:');
+        if ($markerPosition === false) {
+            return null;
+        }
+
+        $normalizedKey = substr($rawKey, $markerPosition);
+        $parts = explode(':', $normalizedKey, 3);
+        if (count($parts) !== 3) {
+            return null;
+        }
+
+        return [(string) $parts[1], (string) $parts[2]];
     }
 }

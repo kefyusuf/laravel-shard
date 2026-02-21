@@ -271,14 +271,12 @@ class ShardHealthCommand extends Command
             
             $orphanedCount = 0;
             foreach ($keys as $key) {
-                // Extract table and key from Redis key format: shard:table:key
-                $parts = explode(':', $key, 3);
-                if (count($parts) !== 3) {
+                $parsed = $this->parseShardRedisKey((string) $key);
+                if ($parsed === null) {
                     continue;
                 }
                 
-                $table = $parts[1];
-                $recordKey = $parts[2];
+                [$table, $recordKey] = $parsed;
                 
                 $shardConnection = $locator->locate($table, $recordKey);
                 if ($shardConnection === null || !isset($shardLookup[$shardConnection])) {
@@ -385,6 +383,25 @@ class ShardHealthCommand extends Command
             'unresolved' => $unresolved,
             'exit_code' => $unresolved > 0 ? 1 : 0,
         ];
+    }
+
+    /**
+     * @return array{0:string,1:string}|null
+     */
+    protected function parseShardRedisKey(string $rawKey): ?array
+    {
+        $markerPosition = strpos($rawKey, 'shard:');
+        if ($markerPosition === false) {
+            return null;
+        }
+
+        $normalizedKey = substr($rawKey, $markerPosition);
+        $parts = explode(':', $normalizedKey, 3);
+        if (count($parts) !== 3) {
+            return null;
+        }
+
+        return [(string) $parts[1], (string) $parts[2]];
     }
 
 }
