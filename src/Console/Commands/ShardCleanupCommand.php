@@ -44,7 +44,9 @@ class ShardCleanupCommand extends Command
         $shards = ShardManager::getAvailableShards();
         $shardLookup = array_fill_keys($shards, true);
 
-        $this->info($dryRun ? 'Running cleanup in dry-run mode...' : 'Running cleanup...');
+        if ($format !== 'json') {
+            $this->info($dryRun ? 'Running cleanup in dry-run mode...' : 'Running cleanup...');
+        }
 
         $orphanedKeys = 0;
         $staleMapEntries = 0;
@@ -123,10 +125,19 @@ class ShardCleanupCommand extends Command
         int $staleMapEntries
     ): array {
         return [
-            'dry_run' => $dryRun,
-            'scanned_keys' => $scannedKeys,
-            'orphaned_keys' => $orphanedKeys,
-            'stale_map_entries' => $staleMapEntries,
+            'summary' => [
+                'status' => 'ok',
+                'dry_run' => $dryRun,
+                'scanned_keys' => $scannedKeys,
+                'orphaned_keys' => $orphanedKeys,
+                'stale_map_entries' => $staleMapEntries,
+            ],
+            'report' => [
+                'dry_run' => $dryRun,
+                'scanned_keys' => $scannedKeys,
+                'orphaned_keys' => $orphanedKeys,
+                'stale_map_entries' => $staleMapEntries,
+            ],
         ];
     }
 

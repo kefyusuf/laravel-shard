@@ -24,11 +24,17 @@ class ShardCleanupCommandPayloadTest extends TestCase
 
         $payload = $command->exposedBuildReportPayload(true, 10, 2, 1);
 
+        $this->assertSame('ok', $payload['summary']['status']);
+        $this->assertTrue($payload['summary']['dry_run']);
+        $this->assertSame(10, $payload['summary']['scanned_keys']);
+        $this->assertSame(2, $payload['summary']['orphaned_keys']);
+        $this->assertSame(1, $payload['summary']['stale_map_entries']);
+
         $this->assertSame([
             'dry_run' => true,
             'scanned_keys' => 10,
             'orphaned_keys' => 2,
             'stale_map_entries' => 1,
-        ], $payload);
+        ], $payload['report']);
     }
 }
