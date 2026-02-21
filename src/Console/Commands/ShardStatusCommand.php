@@ -49,13 +49,10 @@ class ShardStatusCommand extends Command
 
         if (empty($availableShards)) {
             if ($this->jsonOutput) {
-                $this->line(json_encode([
-                    'summary' => [
-                        'status' => 'error',
-                        'total_shards' => 0,
-                    ],
-                    'error' => 'No available shards found.',
-                ], JSON_PRETTY_PRINT));
+                $this->line(json_encode(
+                    $this->buildErrorPayload('No available shards found.', ['total_shards' => 0]),
+                    JSON_PRETTY_PRINT
+                ));
             } else {
                 $this->error('No available shards found.');
             }
@@ -173,13 +170,10 @@ class ShardStatusCommand extends Command
         
         if (!in_array($shardName, $availableShards)) {
             if ($format === 'json') {
-                $this->line(json_encode([
-                    'summary' => [
-                        'status' => 'error',
-                        'shard' => $shardName,
-                    ],
-                    'error' => "Shard '{$shardName}' not found.",
-                ], JSON_PRETTY_PRINT));
+                $this->line(json_encode(
+                    $this->buildErrorPayload("Shard '{$shardName}' not found.", ['shard' => $shardName]),
+                    JSON_PRETTY_PRINT
+                ));
             } else {
                 $this->error("Shard '{$shardName}' not found.");
             }
@@ -283,6 +277,17 @@ class ShardStatusCommand extends Command
             'shard_status' => $status ?? 'unknown',
             'record_count' => $recordCount ?? 0,
             'table_count' => count($tables),
+        ];
+    }
+
+    /**
+     * Build JSON error payload while preserving contextual summary fields.
+     */
+    protected function buildErrorPayload(string $error, array $summary = []): array
+    {
+        return [
+            'summary' => array_merge(['status' => 'error'], $summary),
+            'error' => $error,
         ];
     }
 

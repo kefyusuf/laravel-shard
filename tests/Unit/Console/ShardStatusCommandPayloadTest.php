@@ -10,6 +10,37 @@ use Laravel\RedisShard\Tests\TestCase;
 
 class ShardStatusCommandPayloadTest extends TestCase
 {
+    public function test_build_error_payload_sets_error_status_and_message(): void
+    {
+        $command = new class extends ShardStatusCommand {
+            public function exposedBuildErrorPayload(string $error, array $summary = []): array
+            {
+                return $this->buildErrorPayload($error, $summary);
+            }
+        };
+
+        $payload = $command->exposedBuildErrorPayload('No available shards found.');
+
+        $this->assertSame('error', $payload['summary']['status']);
+        $this->assertSame('No available shards found.', $payload['error']);
+    }
+
+    public function test_build_error_payload_preserves_context_fields(): void
+    {
+        $command = new class extends ShardStatusCommand {
+            public function exposedBuildErrorPayload(string $error, array $summary = []): array
+            {
+                return $this->buildErrorPayload($error, $summary);
+            }
+        };
+
+        $payload = $command->exposedBuildErrorPayload('Shard not found.', ['shard' => 'shard9']);
+
+        $this->assertSame('error', $payload['summary']['status']);
+        $this->assertSame('shard9', $payload['summary']['shard']);
+        $this->assertSame('Shard not found.', $payload['error']);
+    }
+
     public function test_build_table_summary_payload_has_expected_fields(): void
     {
         $command = new class extends ShardStatusCommand {
