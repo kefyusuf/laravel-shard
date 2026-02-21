@@ -57,4 +57,29 @@ class CreateShardSqliteCommandTest extends TestCase
             ->expectsOutput("Shard \"{$shardName}\" created successfully!")
             ->assertExitCode(0);
     }
+
+    public function test_it_outputs_parseable_json_when_json_format_is_selected(): void
+    {
+        $suffix = bin2hex(random_bytes(4));
+        $shardName = "sqlite_shard_json_{$suffix}";
+        $databasePath = __DIR__ . "/../../tmp/new-shard-json-{$suffix}.sqlite";
+        if (file_exists($databasePath)) {
+            unlink($databasePath);
+        }
+
+        $this->artisan('shard:create', [
+            'name' => $shardName,
+            '--driver' => 'sqlite',
+            '--host' => 'localhost',
+            '--port' => '1',
+            '--database' => $databasePath,
+            '--username' => 'ignored',
+            '--password' => '',
+            '--skip-migrate' => true,
+            '--format' => 'json',
+        ])
+            ->assertExitCode(0);
+        $this->assertFileExists($databasePath);
+        $this->assertNotNull(ShardMetadata::where('name', $shardName)->first());
+    }
 }

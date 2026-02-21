@@ -19,4 +19,13 @@ class InstallCommandTest extends TestCase
             ->expectsOutput('Laravel Redis Sharding installed successfully.')
             ->assertExitCode(0);
     }
+
+    public function test_it_outputs_parseable_json_when_json_format_is_selected(): void
+    {
+        $this->artisan('redis-shard:install', [
+            '--skip-migrate' => true,
+            '--format' => 'json',
+        ])
+            ->assertExitCode(0);
+    }
 }
