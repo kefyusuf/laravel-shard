@@ -130,7 +130,7 @@ class ShardHealthCommand extends Command
     {
         $issues = [];
         $shards = ShardManager::getAvailableShards();
-        $tables = ['users', 'orders', 'products']; // Make this configurable
+        $tables = config('redis_sharding.monitored_tables', ['users', 'orders', 'products']);
         
         foreach ($tables as $table) {
             $distribution = [];
