@@ -333,9 +333,15 @@ class ShardHealthCommand extends Command
                 switch ($issue['type']) {
                     case 'imbalance':
                         if (isset($issue['fix_command'])) {
-                            $this->call(explode(' ', $issue['fix_command'])[0], [
-                                'table' => explode(' ', $issue['fix_command'])[1] ?? null
-                            ]);
+                            $parts = explode(' ', (string) $issue['fix_command'], 2);
+                            $commandName = $parts[0] ?? '';
+                            $table = $parts[1] ?? null;
+
+                            if ($commandName !== '') {
+                                $this->call($commandName, [
+                                    'table' => $table,
+                                ]);
+                            }
                             $fixed++;
                         }
                         break;
