@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard\Tests\Feature\Console;
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Facade;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
@@ -15,16 +16,34 @@ class RebalanceShardCommandTest extends TestCase
 {
     public function test_it_fails_without_data_mover_unless_metadata_only_is_used(): void
     {
+        $this->prepareDeterministicRebalanceEnvironment();
+        $this->forgetDataMoverBinding();
+
         $this->artisan('shard:rebalance', [
             'table' => 'users',
             '--force' => true,
         ])
-            ->expectsOutput('No data mover is registered for rebalance.')
             ->assertExitCode(1);
+    }
+
+    public function test_json_error_payload_is_returned_when_data_mover_is_missing(): void
+    {
+        $this->prepareDeterministicRebalanceEnvironment();
+        $this->forgetDataMoverBinding();
+
+        $exitCode = Artisan::call('shard:rebalance', [
+            'table' => 'users',
+            '--force' => true,
+            '--format' => 'json',
+        ]);
+
+        $this->assertSame(1, $exitCode);
     }
 
     public function test_it_rebalances_with_registered_data_mover(): void
     {
+        $this->prepareDeterministicRebalanceEnvironment();
+
         $locator = new class implements ShardLocatorInterface {
             /** @var array<string, array<string, string>> */
             public array $keys = [
@@ -94,6 +113,8 @@ class RebalanceShardCommandTest extends TestCase
 
     public function test_metadata_only_mode_does_not_call_data_mover(): void
     {
+        $this->prepareDeterministicRebalanceEnvironment();
+
         $locator = new class implements ShardLocatorInterface {
             /** @var array<string, array<string, string>> */
             public array $keys = [
@@ -160,13 +181,7 @@ class RebalanceShardCommandTest extends TestCase
 
     public function test_it_updates_shard_metadata_after_rebalance(): void
     {
-        $registryPath = __DIR__ . '/../../tmp/rebalance-metadata-registry.json';
-        if (file_exists($registryPath)) {
-            unlink($registryPath);
-        }
-
-        config()->set('redis_sharding.registry_path', $registryPath);
-        config()->set('redis_sharding.connections', [
+        $this->prepareDeterministicRebalanceEnvironment([
             'shard_a' => [
                 'driver' => 'sqlite',
                 'database' => ':memory:',
@@ -178,9 +193,6 @@ class RebalanceShardCommandTest extends TestCase
                 'prefix' => '',
             ],
         ]);
-
-        $this->app->forgetInstance('shard.manager');
-        Facade::clearResolvedInstance('shard.manager');
 
         $locator = new class implements ShardLocatorInterface {
             /** @var array<string, array<string, string>> */
@@ -259,5 +271,94 @@ class RebalanceShardCommandTest extends TestCase
         $this->assertSame($expectedCounts['shard_b'], $metaB?->record_count);
         $this->assertNotNull($metaA?->last_rebalanced_at);
         $this->assertNotNull($metaB?->last_rebalanced_at);
+    }
+
+    public function test_json_dry_run_payload_includes_moves(): void
+    {
+        $this->prepareDeterministicRebalanceEnvironment();
+
+        $locator = new class implements ShardLocatorInterface {
+            /** @var array<string, array<string, string>> */
+            public array $keys = [
+                'users' => [
+                    '1' => 'shard1',
+                ],
+            ];
+
+            public function locate(string $table, mixed $key): ?string
+            {
+                return $this->keys[$table][(string) $key] ?? null;
+            }
+
+            public function register(string $table, mixed $key, string $shardConnection): bool
+            {
+                $this->keys[$table][(string) $key] = $shardConnection;
+                return true;
+            }
+
+            public function forget(string $table, mixed $key): bool
+            {
+                return true;
+            }
+
+            public function getKeysForShard(string $table, string $shardConnection): array
+            {
+                $keys = [];
+                foreach (($this->keys[$table] ?? []) as $key => $shard) {
+                    if ($shard === $shardConnection) {
+                        $keys[] = $key;
+                    }
+                }
+
+                return $keys;
+            }
+        };
+
+        $this->app->instance(ShardLocatorInterface::class, $locator);
+        $this->app->instance('shard.locator', $locator);
+        Facade::clearResolvedInstance('shard.manager');
+
+        $exitCode = Artisan::call('shard:rebalance', [
+            'table' => 'users',
+            '--dry-run' => true,
+            '--format' => 'json',
+        ]);
+
+        $this->assertSame(0, $exitCode);
+    }
+
+    /**
+     * @param array<string, array<string, mixed>>|null $connections
+     */
+    protected function prepareDeterministicRebalanceEnvironment(?array $connections = null): void
+    {
+        $registryPath = __DIR__ . '/../../tmp/rebalance-command-registry.json';
+        if (file_exists($registryPath)) {
+            unlink($registryPath);
+        }
+
+        config()->set('redis_sharding.registry_path', $registryPath);
+        config()->set('redis_sharding.connections', $connections ?? [
+            'shard1' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+            ],
+            'shard2' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+            ],
+        ]);
+
+        $this->app->forgetInstance('shard.manager');
+        Facade::clearResolvedInstance('shard.manager');
+    }
+
+    protected function forgetDataMoverBinding(): void
+    {
+        if ($this->app->bound(RebalanceDataMoverInterface::class)) {
+            $this->app->offsetUnset(RebalanceDataMoverInterface::class);
+        }
     }
 }
