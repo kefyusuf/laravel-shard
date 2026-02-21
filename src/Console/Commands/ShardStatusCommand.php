@@ -39,6 +39,12 @@ class ShardStatusCommand extends Command
         $table = $this->option('table');
         $shard = $this->option('shard');
         $format = $this->option('format');
+        $availableShards = ShardManager::getAvailableShards();
+
+        if (empty($availableShards)) {
+            $this->error('No available shards found.');
+            return 1;
+        }
 
         if ($table) {
             return $this->showTableStatus($table, $locator, $format);
