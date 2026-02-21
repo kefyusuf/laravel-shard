@@ -166,15 +166,17 @@ class ShardAnalyzeCommand extends Command
     protected function testDistribution($strategy, array $shards, int $sampleSize): array
     {
         $distribution = array_fill_keys($shards, 0);
+        $numericSamples = intdiv($sampleSize, 2);
+        $stringSamples = $sampleSize - $numericSamples;
         
         // Test with numeric keys
-        for ($i = 1; $i <= $sampleSize / 2; $i++) {
+        for ($i = 1; $i <= $numericSamples; $i++) {
             $shard = $strategy->determine('test_table', $i, $shards);
             $distribution[$shard]++;
         }
         
         // Test with string keys
-        for ($i = 1; $i <= $sampleSize / 2; $i++) {
+        for ($i = 1; $i <= $stringSamples; $i++) {
             $key = "user_{$i}@example.com";
             $shard = $strategy->determine('test_table', $key, $shards);
             $distribution[$shard]++;
