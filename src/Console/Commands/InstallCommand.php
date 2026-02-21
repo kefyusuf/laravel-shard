@@ -40,7 +40,7 @@ class InstallCommand extends Command
             $this->info('Publishing configuration...');
         }
 
-        $publishExitCode = (int) $this->call('vendor:publish', [
+        $publishExitCode = $this->invokeSubCommand($jsonOutput, 'vendor:publish', [
             '--provider' => 'Laravel\\RedisShard\\RedisShardServiceProvider',
             '--tag' => 'config',
         ]);
@@ -58,7 +58,7 @@ class InstallCommand extends Command
                 $this->info('Running migrations...');
             }
 
-            $migrateExitCode = (int) $this->call('migrate');
+            $migrateExitCode = $this->invokeSubCommand($jsonOutput, 'migrate');
             if ($migrateExitCode !== 0) {
                 return $this->respond(
                     1,
@@ -119,5 +119,19 @@ class InstallCommand extends Command
         }
 
         return $exitCode;
+    }
+
+    /**
+     * Invoke sub-commands quietly in json mode to keep output parseable.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    protected function invokeSubCommand(bool $jsonOutput, string $command, array $parameters = []): int
+    {
+        if ($jsonOutput) {
+            return (int) $this->callSilent($command, $parameters);
+        }
+
+        return (int) $this->call($command, $parameters);
     }
 }

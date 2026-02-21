@@ -9,6 +9,62 @@ use Laravel\RedisShard\Tests\TestCase;
 
 class InstallCommandPayloadTest extends TestCase
 {
+    public function test_invoke_sub_command_uses_call_silent_in_json_mode(): void
+    {
+        $command = new class extends InstallCommand {
+            public string $invokedMethod = '';
+
+            public function exposedInvokeSubCommand(bool $jsonOutput, string $command, array $parameters = []): int
+            {
+                return $this->invokeSubCommand($jsonOutput, $command, $parameters);
+            }
+
+            public function call($command, array $arguments = []): int
+            {
+                $this->invokedMethod = 'call';
+                return 0;
+            }
+
+            public function callSilent($command, array $arguments = []): int
+            {
+                $this->invokedMethod = 'callSilent';
+                return 0;
+            }
+        };
+
+        $command->exposedInvokeSubCommand(true, 'migrate');
+
+        $this->assertSame('callSilent', $command->invokedMethod);
+    }
+
+    public function test_invoke_sub_command_uses_call_in_table_mode(): void
+    {
+        $command = new class extends InstallCommand {
+            public string $invokedMethod = '';
+
+            public function exposedInvokeSubCommand(bool $jsonOutput, string $command, array $parameters = []): int
+            {
+                return $this->invokeSubCommand($jsonOutput, $command, $parameters);
+            }
+
+            public function call($command, array $arguments = []): int
+            {
+                $this->invokedMethod = 'call';
+                return 0;
+            }
+
+            public function callSilent($command, array $arguments = []): int
+            {
+                $this->invokedMethod = 'callSilent';
+                return 0;
+            }
+        };
+
+        $command->exposedInvokeSubCommand(false, 'migrate');
+
+        $this->assertSame('call', $command->invokedMethod);
+    }
+
     public function test_build_payload_for_successful_install(): void
     {
         $command = new class extends InstallCommand {
