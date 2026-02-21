@@ -56,6 +56,9 @@ return [
     // Persistent shard registry path for dynamic shard provisioning
     'registry_path' => env('REDIS_SHARD_REGISTRY_PATH', storage_path('app/redis_sharding_registry.json')),
 
+    // When true, invalid sharding configuration throws even in production.
+    'strict_validation' => env('REDIS_SHARD_STRICT_VALIDATION', true),
+
     // Tables monitored by health/status/monitoring commands
     'monitored_tables' => ['users', 'orders', 'products'],
 

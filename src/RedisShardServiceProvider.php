@@ -97,11 +97,13 @@ class RedisShardServiceProvider extends ServiceProvider
                 $config = config('redis_sharding', []);
                 ConfigValidator::validate($config);
             } catch (\Laravel\RedisShard\Exceptions\ConfigurationException $e) {
-                if ($this->app->environment('production')) {
+                $strictValidation = (bool) config('redis_sharding.strict_validation', true);
+
+                if ($this->app->environment('production') && !$strictValidation) {
                     // Log the error in production but don't crash the app
                     logger()->error('Redis Sharding Configuration Error: ' . $e->getMessage());
                 } else {
-                    // Throw the exception in non-production environments
+                    // Throw the exception outside production or when strict validation is enabled
                     throw $e;
                 }
             }
