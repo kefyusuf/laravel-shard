@@ -9,6 +9,30 @@ use Illuminate\Database\Eloquent\Builder;
 class ShardableBuilder extends Builder
 {
     /**
+     * Execute a query operation on a specific shard while preserving current builder constraints.
+     *
+     * @param string $shardConnection
+     * @param callable $operation
+     * @return mixed
+     */
+    protected function runOnShard(string $shardConnection, callable $operation): mixed
+    {
+        $query = $this->getQuery();
+        $originalQueryConnection = $query->connection;
+        $originalModelConnection = $this->model->getConnectionName();
+
+        $this->model->setConnection($shardConnection);
+        $query->connection = app('db')->connection($shardConnection);
+
+        try {
+            return $operation();
+        } finally {
+            $this->model->setConnection($originalModelConnection);
+            $query->connection = $originalQueryConnection;
+        }
+    }
+
+    /**
      * Build a query instance pinned to a specific shard connection.
      */
     protected function newQueryForShard(string $shardConnection): Builder
@@ -42,7 +66,10 @@ class ShardableBuilder extends Builder
             $shardConnection = app('shard.locator')->locate($table, $id);
 
             if ($shardConnection !== null) {
-                return $this->newQueryForShard($shardConnection)->find($id, $columns);
+                return $this->runOnShard(
+                    $shardConnection,
+                    fn () => parent::find($id, $columns)
+                );
             }
         }
 
@@ -126,9 +153,10 @@ class ShardableBuilder extends Builder
                 $shardConnection = app('shard.locator')->locate($table, $shardKeyValue);
 
                 if ($shardConnection !== null) {
-                    return $this->newQueryForShard($shardConnection)
-                        ->where($where['column'], $where['operator'], $where['value'])
-                        ->first($columns);
+                    return $this->runOnShard(
+                        $shardConnection,
+                        fn () => parent::first($columns)
+                    );
                 }
             }
         }
