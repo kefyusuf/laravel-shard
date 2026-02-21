@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
@@ -13,6 +14,7 @@ use Laravel\RedisShard\Models\ShardMetadata;
 
 class RebalanceShardCommand extends Command
 {
+    use HandlesJsonOutput;
     use ValidatesOutputFormat;
 
     /**
@@ -279,7 +281,7 @@ class RebalanceShardCommand extends Command
     protected function respond(int $exitCode, array $payload): int
     {
         if ($this->jsonOutput) {
-            $this->line(json_encode($payload, JSON_PRETTY_PRINT));
+            $this->emitJson($payload);
         } elseif (isset($payload['error']) && is_string($payload['error']) && $payload['error'] !== '') {
             $this->error($payload['error']);
         } elseif (isset($payload['summary']['status']) && is_string($payload['summary']['status'])) {
@@ -308,15 +310,11 @@ class RebalanceShardCommand extends Command
      */
     protected function buildErrorPayload(string $table, bool $dryRun, bool $metadataOnly, string $error): array
     {
-        return [
-            'summary' => [
-                'table' => $table,
-                'status' => 'error',
-                'dry_run' => $dryRun,
-                'metadata_only' => $metadataOnly,
-            ],
-            'error' => $error,
-        ];
+        return $this->makeErrorPayload($error, [
+            'table' => $table,
+            'dry_run' => $dryRun,
+            'metadata_only' => $metadataOnly,
+        ]);
     }
 
     /**

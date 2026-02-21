@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 
 class InstallCommand extends Command
 {
+    use HandlesJsonOutput;
     use ValidatesOutputFormat;
 
     /**
@@ -122,7 +124,7 @@ class InstallCommand extends Command
     protected function respond(int $exitCode, bool $jsonOutput, array $payload): int
     {
         if ($jsonOutput) {
-            $this->line(json_encode($payload, JSON_PRETTY_PRINT));
+            $this->emitJson($payload);
         }
 
         return $exitCode;

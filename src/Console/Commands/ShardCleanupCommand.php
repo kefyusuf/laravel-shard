@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardCleanupCommand extends Command
 {
+    use HandlesJsonOutput;
     use ValidatesOutputFormat;
 
     /**
@@ -109,10 +111,9 @@ class ShardCleanupCommand extends Command
         }
 
         if ($format === 'json') {
-            $this->line(json_encode(
-                $this->buildReportPayload($dryRun, $scannedKeys, $orphanedKeys, $staleMapEntries),
-                JSON_PRETTY_PRINT
-            ));
+            $this->emitJson(
+                $this->buildReportPayload($dryRun, $scannedKeys, $orphanedKeys, $staleMapEntries)
+            );
         } else {
             $this->line("Scanned shard keys: {$scannedKeys}");
             $this->line("Orphaned keys " . ($dryRun ? 'found' : 'cleaned') . ": {$orphanedKeys}");

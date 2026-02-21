@@ -4,14 +4,33 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard\Tests\Feature\Console;
 
+use Illuminate\Support\Facades\Facade;
 use Laravel\RedisShard\Models\ShardMetadata;
 use Laravel\RedisShard\Tests\TestCase;
 
 class CreateShardCommandTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->prepareDeterministicRegistry();
+    }
+
     protected function sqliteDatabasePath(string $suffix): string
     {
         return __DIR__ . '/../../tmp/' . $suffix . '.sqlite';
+    }
+
+    protected function prepareDeterministicRegistry(): void
+    {
+        $registryPath = __DIR__ . '/../../tmp/create-shard-registry.json';
+        if (file_exists($registryPath)) {
+            unlink($registryPath);
+        }
+
+        config()->set('redis_sharding.registry_path', $registryPath);
+        $this->app->forgetInstance('shard.manager');
+        Facade::clearResolvedInstance('shard.manager');
     }
 
     public function test_it_rejects_unsupported_output_format(): void

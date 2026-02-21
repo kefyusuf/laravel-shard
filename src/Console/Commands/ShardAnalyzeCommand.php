@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardAnalyzeCommand extends Command
 {
+    use HandlesJsonOutput;
     use ValidatesOutputFormat;
 
     /**
@@ -101,10 +103,10 @@ class ShardAnalyzeCommand extends Command
         }
         
         if ($format === 'json') {
-            $this->line(json_encode([
+            $this->emitJson([
                 'summary' => $this->buildOverallSummary($results, $sampleSize),
                 'results' => $results,
-            ], JSON_PRETTY_PRINT));
+            ]);
         } else {
             $this->displayAnalysisResults($results, $sampleSize);
         }
@@ -156,10 +158,10 @@ class ShardAnalyzeCommand extends Command
         ];
         
         if ($format === 'json') {
-            $this->line(json_encode([
+            $this->emitJson([
                 'summary' => $this->buildTableSummary($analysis),
                 'analysis' => $analysis,
-            ], JSON_PRETTY_PRINT));
+            ]);
         } else {
             $this->displayTableAnalysis($analysis);
         }

@@ -6,12 +6,14 @@ namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Facades\ShardManager;
 use Laravel\RedisShard\Models\ShardMetadata;
 
 class CreateShardCommand extends Command
 {
+    use HandlesJsonOutput;
     use ValidatesOutputFormat;
 
     /**
@@ -237,10 +239,7 @@ class CreateShardCommand extends Command
      */
     protected function buildErrorPayload(string $error, array $summary = []): array
     {
-        return [
-            'summary' => array_merge(['status' => 'error'], $summary),
-            'error' => $error,
-        ];
+        return $this->makeErrorPayload($error, $summary);
     }
 
     /**
@@ -249,7 +248,7 @@ class CreateShardCommand extends Command
     protected function respond(int $exitCode, bool $jsonOutput, array $payload): int
     {
         if ($jsonOutput) {
-            $this->line(json_encode($payload, JSON_PRETTY_PRINT));
+            $this->emitJson($payload);
         } elseif (isset($payload['error']) && is_string($payload['error'])) {
             $this->error($payload['error']);
         }

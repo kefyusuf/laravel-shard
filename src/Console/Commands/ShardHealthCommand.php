@@ -6,12 +6,14 @@ namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardHealthCommand extends Command
 {
+    use HandlesJsonOutput;
     use ValidatesOutputFormat;
 
     /**
@@ -73,10 +75,10 @@ class ShardHealthCommand extends Command
         
         if (empty($issues)) {
             if ($format === 'json') {
-                $this->line(json_encode([
+                $this->emitJson([
                     'summary' => $summary,
                     'issues' => [],
-                ], JSON_PRETTY_PRINT));
+                ]);
             } else {
                 $this->info('✅ All shards are healthy!');
             }
@@ -87,11 +89,11 @@ class ShardHealthCommand extends Command
             $fixResult = $this->fixIssues($issues, $locator);
 
             if ($format === 'json') {
-                $this->line(json_encode([
+                $this->emitJson([
                     'summary' => $summary,
                     'issues' => $issues,
                     'fix' => $fixResult,
-                ], JSON_PRETTY_PRINT));
+                ]);
             } else {
                 $this->displayIssues($issues);
             }
@@ -100,10 +102,10 @@ class ShardHealthCommand extends Command
         }
 
         if ($format === 'json') {
-            $this->line(json_encode([
+            $this->emitJson([
                 'summary' => $summary,
                 'issues' => $issues,
-            ], JSON_PRETTY_PRINT));
+            ]);
         } else {
             $this->displayIssues($issues);
         }

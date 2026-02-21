@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
@@ -12,6 +13,7 @@ use Laravel\RedisShard\Models\ShardMetadata;
 
 class ShardStatusCommand extends Command
 {
+    use HandlesJsonOutput;
     use ValidatesOutputFormat;
 
     /**
@@ -56,10 +58,9 @@ class ShardStatusCommand extends Command
 
         if (empty($availableShards)) {
             if ($this->jsonOutput) {
-                $this->line(json_encode(
-                    $this->buildErrorPayload('No available shards found.', ['total_shards' => 0]),
-                    JSON_PRETTY_PRINT
-                ));
+                $this->emitJson(
+                    $this->buildErrorPayload('No available shards found.', ['total_shards' => 0])
+                );
             } else {
                 $this->error('No available shards found.');
             }
@@ -102,10 +103,7 @@ class ShardStatusCommand extends Command
         }
 
         if ($format === 'json') {
-            $this->line(json_encode(
-                $this->buildOverallPayload($shards, $metadata),
-                JSON_PRETTY_PRINT
-            ));
+            $this->emitJson($this->buildOverallPayload($shards, $metadata));
         } else {
             $this->table(['Shard', 'Status', 'Records', 'Last Rebalanced', 'Created'], $data);
             $defaultStrategy = $this->resolveDefaultStrategyName();
@@ -149,12 +147,12 @@ class ShardStatusCommand extends Command
             $row['Percentage'] = $totalKeys > 0 ? round(($keyCount / $totalKeys) * 100, 2) . '%' : '0%';
         }
 
-        if ($format === 'json') {
-            $this->line(json_encode([
-                'summary' => $this->buildTableSummaryPayload($table, $totalKeys, $data),
-                'shards' => $data,
-            ], JSON_PRETTY_PRINT));
-        } else {
+            if ($format === 'json') {
+                $this->emitJson([
+                    'summary' => $this->buildTableSummaryPayload($table, $totalKeys, $data),
+                    'shards' => $data,
+                ]);
+            } else {
             $this->info("Table: {$table}");
             $this->table(['Shard', 'Keys', 'Percentage'], $data);
             $this->info("Total Keys: {$totalKeys}");
@@ -177,10 +175,9 @@ class ShardStatusCommand extends Command
         
         if (!in_array($shardName, $availableShards)) {
             if ($format === 'json') {
-                $this->line(json_encode(
-                    $this->buildErrorPayload("Shard '{$shardName}' not found.", ['shard' => $shardName]),
-                    JSON_PRETTY_PRINT
-                ));
+                $this->emitJson(
+                    $this->buildErrorPayload("Shard '{$shardName}' not found.", ['shard' => $shardName])
+                );
             } else {
                 $this->error("Shard '{$shardName}' not found.");
             }
@@ -204,7 +201,7 @@ class ShardStatusCommand extends Command
         }
 
         if ($format === 'json') {
-            $this->line(json_encode([
+            $this->emitJson([
                 'summary' => $this->buildShardSummaryPayload($shardName, $metadata?->status, $metadata?->record_count, $tableData),
                 'shard' => [
                     'name' => $shardName,
@@ -214,7 +211,7 @@ class ShardStatusCommand extends Command
                     'last_rebalanced_at' => $metadata?->last_rebalanced_at,
                 ],
                 'tables' => $tableData,
-            ], JSON_PRETTY_PRINT));
+            ]);
         } else {
             $this->info("Shard: {$shardName}");
             $this->info("Status: " . ($metadata?->status ?? 'unknown'));
@@ -292,10 +289,7 @@ class ShardStatusCommand extends Command
      */
     protected function buildErrorPayload(string $error, array $summary = []): array
     {
-        return [
-            'summary' => array_merge(['status' => 'error'], $summary),
-            'error' => $error,
-        ];
+        return $this->makeErrorPayload($error, $summary);
     }
 
     /**
