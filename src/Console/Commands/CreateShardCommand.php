@@ -135,16 +135,21 @@ class CreateShardCommand extends Command
         config(['database.connections.temp' => $tempConfig]);
 
         $db = DB::connection('temp');
+        $databaseName = (string) $config['database'];
 
         switch ($config['driver']) {
             case 'mysql':
-                $db->statement("CREATE DATABASE IF NOT EXISTS `{$config['database']}`");
+                $escapedDatabase = str_replace('`', '``', $databaseName);
+                $db->statement("CREATE DATABASE IF NOT EXISTS `{$escapedDatabase}`");
                 break;
             case 'pgsql':
-                $db->statement("CREATE DATABASE \"{$config['database']}\"");
+                $escapedDatabase = str_replace('"', '""', $databaseName);
+                $db->statement("CREATE DATABASE \"{$escapedDatabase}\"");
                 break;
             case 'sqlsrv':
-                $db->statement("IF DB_ID(N'{$config['database']}') IS NULL CREATE DATABASE [{$config['database']}]");
+                $escapedDatabase = str_replace("'", "''", $databaseName);
+                $escapedBracketDatabase = str_replace(']', ']]', $databaseName);
+                $db->statement("IF DB_ID(N'{$escapedDatabase}') IS NULL CREATE DATABASE [{$escapedBracketDatabase}]");
                 break;
             default:
                 throw new \InvalidArgumentException("Unsupported driver for shard creation: {$config['driver']}");
