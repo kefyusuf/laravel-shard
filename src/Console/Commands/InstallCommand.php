@@ -14,7 +14,8 @@ class InstallCommand extends Command
      * @var string
      */
     protected $signature = 'redis-shard:install
-                            {--skip-migrate : Skip running package migrations}';
+                            {--skip-migrate : Skip running package migrations}
+                            {--format=table : Output format (table, json)}';
 
     /**
      * The console command description.
@@ -30,23 +31,93 @@ class InstallCommand extends Command
      */
     public function handle(): int
     {
-        $this->info('Installing Laravel Redis Sharding...');
+        $format = (string) $this->option('format');
+        $jsonOutput = $format === 'json';
+        $skipMigrate = (bool) $this->option('skip-migrate');
 
-        $this->info('Publishing configuration...');
-        $this->call('vendor:publish', [
+        if (!$jsonOutput) {
+            $this->info('Installing Laravel Redis Sharding...');
+            $this->info('Publishing configuration...');
+        }
+
+        $publishExitCode = (int) $this->call('vendor:publish', [
             '--provider' => 'Laravel\\RedisShard\\RedisShardServiceProvider',
             '--tag' => 'config',
         ]);
 
-        if (!$this->option('skip-migrate')) {
-            $this->info('Running migrations...');
-            $this->call('migrate');
-        } else {
-            $this->warn('Skipping migrations as requested.');
+        if ($publishExitCode !== 0) {
+            return $this->respond(
+                1,
+                $jsonOutput,
+                $this->buildPayload('error', false, false, $skipMigrate, 'Failed to publish configuration.')
+            );
         }
 
-        $this->info('Laravel Redis Sharding installed successfully.');
+        if (!$skipMigrate) {
+            if (!$jsonOutput) {
+                $this->info('Running migrations...');
+            }
 
-        return 0;
+            $migrateExitCode = (int) $this->call('migrate');
+            if ($migrateExitCode !== 0) {
+                return $this->respond(
+                    1,
+                    $jsonOutput,
+                    $this->buildPayload('error', true, false, false, 'Failed to run migrations.')
+                );
+            }
+        } else {
+            if (!$jsonOutput) {
+                $this->warn('Skipping migrations as requested.');
+            }
+        }
+
+        if (!$jsonOutput) {
+            $this->info('Laravel Redis Sharding installed successfully.');
+        }
+
+        return $this->respond(
+            0,
+            $jsonOutput,
+            $this->buildPayload('ok', true, !$skipMigrate, $skipMigrate)
+        );
+    }
+
+    /**
+     * Build install command payload.
+     */
+    protected function buildPayload(
+        string $status,
+        bool $publishedConfig,
+        bool $ranMigrations,
+        bool $skippedMigrations,
+        ?string $error = null
+    ): array {
+        $payload = [
+            'summary' => [
+                'status' => $status,
+                'published_config' => $publishedConfig,
+                'ran_migrations' => $ranMigrations,
+                'skipped_migrations' => $skippedMigrations,
+            ],
+        ];
+
+        if ($error !== null) {
+            $payload['error'] = $error;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Emit output according to selected mode and return exit code.
+     */
+    protected function respond(int $exitCode, bool $jsonOutput, array $payload): int
+    {
+        if ($jsonOutput) {
+            $this->line(json_encode($payload, JSON_PRETTY_PRINT));
+        }
+
+        return $exitCode;
     }
 }
