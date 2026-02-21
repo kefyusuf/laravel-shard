@@ -14,6 +14,16 @@ use Laravel\RedisShard\Tests\TestCase;
 
 class RebalanceShardCommandTest extends TestCase
 {
+    public function test_it_rejects_unsupported_output_format(): void
+    {
+        $this->artisan('shard:rebalance', [
+            'table' => 'users',
+            '--format' => 'xml',
+        ])
+            ->expectsOutput('Unsupported format "xml". Allowed: table, json.')
+            ->assertExitCode(1);
+    }
+
     public function test_it_fails_without_data_mover_unless_metadata_only_is_used(): void
     {
         $this->prepareDeterministicRebalanceEnvironment();

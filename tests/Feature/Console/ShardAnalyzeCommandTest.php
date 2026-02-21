@@ -10,6 +10,15 @@ use Laravel\RedisShard\Tests\TestCase;
 
 class ShardAnalyzeCommandTest extends TestCase
 {
+    public function test_it_rejects_unsupported_output_format(): void
+    {
+        $this->artisan('shard:analyze', [
+            '--format' => 'xml',
+        ])
+            ->expectsOutput('Unsupported format "xml". Allowed: table, json.')
+            ->assertExitCode(1);
+    }
+
     public function test_it_rejects_invalid_sample_size(): void
     {
         $this->artisan('shard:analyze', [

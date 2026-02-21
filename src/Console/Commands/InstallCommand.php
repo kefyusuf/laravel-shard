@@ -32,6 +32,11 @@ class InstallCommand extends Command
     public function handle(): int
     {
         $format = (string) $this->option('format');
+        if (!in_array($format, ['table', 'json'], true)) {
+            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+            return 1;
+        }
+
         $jsonOutput = $format === 'json';
         $skipMigrate = (bool) $this->option('skip-migrate');
 

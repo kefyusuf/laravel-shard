@@ -9,6 +9,15 @@ use Laravel\RedisShard\Tests\TestCase;
 
 class ShardHealthCommandTest extends TestCase
 {
+    public function test_it_rejects_unsupported_output_format(): void
+    {
+        $this->artisan('shard:health', [
+            '--format' => 'xml',
+        ])
+            ->expectsOutput('Unsupported format "xml". Allowed: table, json.')
+            ->assertExitCode(1);
+    }
+
     public function test_fix_mode_returns_failure_when_unresolved_issues_remain(): void
     {
         $this->prepareDeterministicHealthIssues();

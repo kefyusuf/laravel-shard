@@ -8,6 +8,15 @@ use Laravel\RedisShard\Tests\TestCase;
 
 class InstallCommandTest extends TestCase
 {
+    public function test_it_rejects_unsupported_output_format(): void
+    {
+        $this->artisan('redis-shard:install', [
+            '--format' => 'xml',
+        ])
+            ->expectsOutput('Unsupported format "xml". Allowed: table, json.')
+            ->assertExitCode(1);
+    }
+
     public function test_it_can_skip_migration_step(): void
     {
         $this->artisan('redis-shard:install', [

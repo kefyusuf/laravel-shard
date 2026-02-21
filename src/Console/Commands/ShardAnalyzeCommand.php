@@ -39,7 +39,11 @@ class ShardAnalyzeCommand extends Command
         $table = $this->argument('table');
         $strategy = $this->option('strategy');
         $sampleSize = (int) $this->option('sample-size');
-        $format = $this->option('format');
+        $format = (string) $this->option('format');
+        if (!in_array($format, ['table', 'json'], true)) {
+            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+            return 1;
+        }
 
         if ($table) {
             return $this->analyzeTable($table, $locator, $format);

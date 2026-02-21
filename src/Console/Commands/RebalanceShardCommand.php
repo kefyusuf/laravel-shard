@@ -50,6 +50,11 @@ class RebalanceShardCommand extends Command
         $force = $this->option('force');
         $metadataOnly = $this->option('metadata-only');
         $format = (string) $this->option('format');
+        if (!in_array($format, ['table', 'json'], true)) {
+            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+            return 1;
+        }
+
         $strategyName = $this->option('strategy');
         $this->jsonOutput = $format === 'json';
 

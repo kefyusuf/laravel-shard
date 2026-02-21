@@ -41,7 +41,12 @@ class ShardHealthCommand extends Command
     public function handle(ShardLocatorInterface $locator): int
     {
         $fix = $this->option('fix');
-        $format = $this->option('format');
+        $format = (string) $this->option('format');
+        if (!in_array($format, ['table', 'json'], true)) {
+            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+            return 1;
+        }
+
         $this->jsonOutput = $format === 'json';
         
         if (!$this->jsonOutput) {

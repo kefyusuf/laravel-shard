@@ -28,6 +28,15 @@ class ShardCleanupCommandTest extends TestCase
         $this->assertNotNull($redis->get('shard:users:1001'));
     }
 
+    public function test_it_rejects_unsupported_output_format(): void
+    {
+        $this->artisan('shard:cleanup', [
+            '--format' => 'xml',
+        ])
+            ->expectsOutput('Unsupported format "xml". Allowed: table, json.')
+            ->assertExitCode(1);
+    }
+
     public function test_it_cleans_orphaned_keys_and_stale_shard_maps(): void
     {
         $redis = $this->app->make('redis')->connection(config('redis_sharding.redis_connection', 'default'));

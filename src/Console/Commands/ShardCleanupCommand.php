@@ -34,6 +34,11 @@ class ShardCleanupCommand extends Command
     {
         $dryRun = (bool) $this->option('dry-run');
         $format = (string) $this->option('format');
+        if (!in_array($format, ['table', 'json'], true)) {
+            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+            return 1;
+        }
+
         $targetTables = collect((array) $this->option('table'))
             ->filter(fn ($table) => is_string($table) && $table !== '')
             ->values()

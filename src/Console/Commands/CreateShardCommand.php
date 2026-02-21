@@ -43,6 +43,11 @@ class CreateShardCommand extends Command
     {
         $name = $this->argument('name');
         $format = (string) $this->option('format');
+        if (!in_array($format, ['table', 'json'], true)) {
+            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+            return 1;
+        }
+
         $jsonOutput = $format === 'json';
 
         // Validate shard name
