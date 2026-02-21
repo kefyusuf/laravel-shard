@@ -20,6 +20,7 @@ class RebalanceShardCommand extends Command
     protected $signature = 'shard:rebalance
                              {table : The table to rebalance}
                              {--dry-run : Run without making changes}
+                             {--force : Skip confirmation prompt}
                              {--metadata-only : Update only shard mappings, do not move table data}
                              {--strategy= : The sharding strategy to use}';
 
@@ -40,6 +41,7 @@ class RebalanceShardCommand extends Command
     {
         $table = $this->argument('table');
         $dryRun = $this->option('dry-run');
+        $force = $this->option('force');
         $metadataOnly = $this->option('metadata-only');
         $strategyName = $this->option('strategy');
 
@@ -127,7 +129,7 @@ class RebalanceShardCommand extends Command
         }
 
         // Confirm before proceeding
-        if (!$this->confirm('Do you wish to proceed with rebalancing?')) {
+        if (!$force && !$this->confirm('Do you wish to proceed with rebalancing?')) {
             return 0;
         }
 
