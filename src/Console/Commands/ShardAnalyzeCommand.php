@@ -41,13 +41,13 @@ class ShardAnalyzeCommand extends Command
         $sampleSize = (int) $this->option('sample-size');
         $format = $this->option('format');
 
+        if ($table) {
+            return $this->analyzeTable($table, $locator, $format);
+        }
+
         if ($sampleSize < 2) {
             $this->error('Sample size must be at least 2.');
             return 1;
-        }
-
-        if ($table) {
-            return $this->analyzeTable($table, $locator, $format);
         }
 
         return $this->analyzeOverall($locator, $strategy, $sampleSize, $format);
