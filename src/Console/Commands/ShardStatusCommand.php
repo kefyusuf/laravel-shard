@@ -44,6 +44,11 @@ class ShardStatusCommand extends Command
         $table = $this->option('table');
         $shard = $this->option('shard');
         $format = (string) $this->option('format');
+        if (!in_array($format, ['table', 'json'], true)) {
+            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+            return 1;
+        }
+
         $this->jsonOutput = $format === 'json';
         $availableShards = ShardManager::getAvailableShards();
 
