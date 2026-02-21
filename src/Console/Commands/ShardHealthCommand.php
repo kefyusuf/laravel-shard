@@ -110,7 +110,8 @@ class ShardHealthCommand extends Command
         $issues = [];
         
         try {
-            $redis = app('redis');
+            $redisConnection = config('redis_sharding.redis_connection', 'default');
+            $redis = app('redis')->connection($redisConnection);
             $redis->ping();
             $this->line('✅ Redis is accessible');
         } catch (\Exception $e) {
@@ -187,7 +188,8 @@ class ShardHealthCommand extends Command
         $shardLookup = array_fill_keys(ShardManager::getAvailableShards(), true);
         
         try {
-            $redis = app('redis');
+            $redisConnection = config('redis_sharding.redis_connection', 'default');
+            $redis = app('redis')->connection($redisConnection);
             $keys = $redis->keys('shard:*');
             
             $orphanedCount = 0;
