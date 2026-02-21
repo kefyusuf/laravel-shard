@@ -12,6 +12,11 @@ use Laravel\RedisShard\Facades\ShardManager;
 class ShardHealthCommand extends Command
 {
     /**
+     * @var bool
+     */
+    protected bool $jsonOutput = false;
+
+    /**
      * The name and signature of the console command.
      *
      * @var string
@@ -37,8 +42,11 @@ class ShardHealthCommand extends Command
     {
         $fix = $this->option('fix');
         $format = $this->option('format');
+        $this->jsonOutput = $format === 'json';
         
-        $this->info('Checking shard health...');
+        if (!$this->jsonOutput) {
+            $this->info('Checking shard health...');
+        }
         
         $issues = [];
         $issues = array_merge($issues, $this->checkShardConnectivity());
@@ -49,7 +57,9 @@ class ShardHealthCommand extends Command
             $issues = array_merge($issues, $this->checkShardBalance($locator));
             $issues = array_merge($issues, $this->checkOrphanedKeys($locator));
         } else {
-            $this->warn('Skipping shard balance/orphan checks because Redis is unavailable.');
+            if (!$this->jsonOutput) {
+                $this->warn('Skipping shard balance/orphan checks because Redis is unavailable.');
+            }
         }
 
         $summary = $this->buildSummary($issues);
@@ -143,7 +153,9 @@ class ShardHealthCommand extends Command
         foreach ($shards as $shardName) {
             try {
                 DB::connection($shardName)->getPdo();
-                $this->line("✅ Shard '{$shardName}' is accessible");
+                if (!$this->jsonOutput) {
+                    $this->line("✅ Shard '{$shardName}' is accessible");
+                }
             } catch (\Exception $e) {
                 $issues[] = [
                     'type' => 'connectivity',
@@ -152,7 +164,9 @@ class ShardHealthCommand extends Command
                     'message' => "Cannot connect to shard '{$shardName}': " . $e->getMessage(),
                     'fixable' => false,
                 ];
-                $this->line("❌ Shard '{$shardName}' is not accessible");
+                if (!$this->jsonOutput) {
+                    $this->line("❌ Shard '{$shardName}' is not accessible");
+                }
             }
         }
         
@@ -172,7 +186,9 @@ class ShardHealthCommand extends Command
             $redisConnection = config('redis_sharding.redis_connection', 'default');
             $redis = app('redis')->connection($redisConnection);
             $redis->ping();
-            $this->line('✅ Redis is accessible');
+            if (!$this->jsonOutput) {
+                $this->line('✅ Redis is accessible');
+            }
         } catch (\Exception $e) {
             $issues[] = [
                 'type' => 'redis',
@@ -180,7 +196,9 @@ class ShardHealthCommand extends Command
                 'message' => 'Cannot connect to Redis: ' . $e->getMessage(),
                 'fixable' => false,
             ];
-            $this->line('❌ Redis is not accessible');
+            if (!$this->jsonOutput) {
+                $this->line('❌ Redis is not accessible');
+            }
         }
         
         return $issues;
@@ -358,7 +376,9 @@ class ShardHealthCommand extends Command
             }
         }
         
-        $this->info("Fixed {$fixed} issue(s), {$failed} failed, {$unresolved} unresolved.");
+        if (!$this->jsonOutput) {
+            $this->info("Fixed {$fixed} issue(s), {$failed} failed, {$unresolved} unresolved.");
+        }
         return [
             'fixed' => $fixed,
             'failed' => $failed,

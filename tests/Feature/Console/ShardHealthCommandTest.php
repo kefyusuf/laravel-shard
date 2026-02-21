@@ -19,6 +19,19 @@ class ShardHealthCommandTest extends TestCase
         ])->assertExitCode(1);
     }
 
+    public function test_json_mode_output_does_not_include_human_readable_status_lines(): void
+    {
+        $this->prepareDeterministicHealthIssues();
+
+        $this->artisan('shard:health', [
+            '--format' => 'json',
+        ])
+            ->doesntExpectOutputToContain('Checking shard health...')
+            ->doesntExpectOutputToContain('✅')
+            ->doesntExpectOutputToContain('❌')
+            ->assertExitCode(1);
+    }
+
     public function test_json_format_includes_summary_and_issues_blocks(): void
     {
         $this->prepareDeterministicHealthIssues();
