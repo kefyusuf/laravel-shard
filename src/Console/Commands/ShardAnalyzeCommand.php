@@ -95,7 +95,10 @@ class ShardAnalyzeCommand extends Command
         }
         
         if ($format === 'json') {
-            $this->line(json_encode($results, JSON_PRETTY_PRINT));
+            $this->line(json_encode([
+                'summary' => $this->buildOverallSummary($results, $sampleSize),
+                'results' => $results,
+            ], JSON_PRETTY_PRINT));
         } else {
             $this->displayAnalysisResults($results, $sampleSize);
         }
@@ -147,7 +150,10 @@ class ShardAnalyzeCommand extends Command
         ];
         
         if ($format === 'json') {
-            $this->line(json_encode($analysis, JSON_PRETTY_PRINT));
+            $this->line(json_encode([
+                'summary' => $this->buildTableSummary($analysis),
+                'analysis' => $analysis,
+            ], JSON_PRETTY_PRINT));
         } else {
             $this->displayTableAnalysis($analysis);
         }
@@ -337,5 +343,58 @@ class ShardAnalyzeCommand extends Command
         foreach ($analysis['recommendations'] as $recommendation) {
             $this->line("• {$recommendation}");
         }
+    }
+
+    /**
+     * Build summary payload for overall strategy analysis.
+     *
+     * @param array<string, array<string, mixed>> $results
+     * @return array<string, mixed>
+     */
+    protected function buildOverallSummary(array $results, int $sampleSize): array
+    {
+        if (empty($results)) {
+            return [
+                'sample_size' => $sampleSize,
+                'strategy_count' => 0,
+                'best_strategy' => null,
+                'best_balance_score' => null,
+            ];
+        }
+
+        $bestStrategy = null;
+        $bestScore = null;
+
+        foreach ($results as $strategy => $data) {
+            $score = (float) ($data['balance_score'] ?? 0);
+            if ($bestScore === null || $score > $bestScore) {
+                $bestScore = $score;
+                $bestStrategy = $strategy;
+            }
+        }
+
+        return [
+            'sample_size' => $sampleSize,
+            'strategy_count' => count($results),
+            'best_strategy' => $bestStrategy,
+            'best_balance_score' => $bestScore,
+        ];
+    }
+
+    /**
+     * Build summary payload for table analysis.
+     *
+     * @param array<string, mixed> $analysis
+     * @return array<string, mixed>
+     */
+    protected function buildTableSummary(array $analysis): array
+    {
+        return [
+            'table' => $analysis['table'] ?? null,
+            'total_keys' => $analysis['total_keys'] ?? 0,
+            'shard_count' => $analysis['shard_count'] ?? 0,
+            'balance_score' => $analysis['balance_score'] ?? 0,
+            'recommendation_count' => count($analysis['recommendations'] ?? []),
+        ];
     }
 }
