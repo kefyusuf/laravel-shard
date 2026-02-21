@@ -9,6 +9,11 @@ use Laravel\RedisShard\Tests\TestCase;
 
 class CreateShardCommandTest extends TestCase
 {
+    protected function sqliteDatabasePath(string $suffix): string
+    {
+        return __DIR__ . '/../../tmp/' . $suffix . '.sqlite';
+    }
+
     public function test_it_rejects_unsupported_output_format(): void
     {
         $this->artisan('shard:create', [
@@ -21,13 +26,20 @@ class CreateShardCommandTest extends TestCase
 
     public function test_it_can_create_new_shard(): void
     {
+        $databasePath = $this->sqliteDatabasePath('create-shard-new');
+        if (file_exists($databasePath)) {
+            unlink($databasePath);
+        }
+
         $this->artisan('shard:create', [
             'name' => 'test_shard',
-            '--host' => '127.0.0.1',
-            '--port' => '3306',
-            '--database' => 'test_db',
-            '--username' => 'root',
-            '--password' => 'secret',
+            '--driver' => 'sqlite',
+            '--host' => 'localhost',
+            '--port' => '1',
+            '--database' => $databasePath,
+            '--username' => 'ignored',
+            '--password' => '',
+            '--skip-migrate' => true,
         ])
         ->expectsOutput('Shard "test_shard" created successfully!')
         ->assertExitCode(0);
@@ -41,24 +53,33 @@ class CreateShardCommandTest extends TestCase
 
     public function test_it_prevents_duplicate_shard_creation(): void
     {
+        $databasePath = $this->sqliteDatabasePath('create-shard-duplicate');
+        if (file_exists($databasePath)) {
+            unlink($databasePath);
+        }
+
         // Create first shard
         $this->artisan('shard:create', [
             'name' => 'duplicate_shard',
-            '--host' => '127.0.0.1',
-            '--port' => '3306',
-            '--database' => 'test_db',
-            '--username' => 'root',
-            '--password' => 'secret',
+            '--driver' => 'sqlite',
+            '--host' => 'localhost',
+            '--port' => '1',
+            '--database' => $databasePath,
+            '--username' => 'ignored',
+            '--password' => '',
+            '--skip-migrate' => true,
         ])->assertExitCode(0);
         
         // Try to create duplicate
         $this->artisan('shard:create', [
             'name' => 'duplicate_shard',
-            '--host' => '127.0.0.1',
-            '--port' => '3306',
-            '--database' => 'test_db2',
-            '--username' => 'root',
-            '--password' => 'secret',
+            '--driver' => 'sqlite',
+            '--host' => 'localhost',
+            '--port' => '1',
+            '--database' => $this->sqliteDatabasePath('create-shard-duplicate-second'),
+            '--username' => 'ignored',
+            '--password' => '',
+            '--skip-migrate' => true,
         ])
         ->expectsOutput('Shard "duplicate_shard" already exists!')
         ->assertExitCode(1);
@@ -69,7 +90,7 @@ class CreateShardCommandTest extends TestCase
         $this->artisan('shard:create', [
             'name' => 'incomplete_shard',
             '--host' => '127.0.0.1',
-            // Missing other required parameters
+            '--username' => '',
         ])
         ->expectsOutput('All database connection parameters are required.')
         ->assertExitCode(1);
@@ -77,19 +98,25 @@ class CreateShardCommandTest extends TestCase
 
     public function test_it_can_create_shard_with_custom_driver(): void
     {
+        $databasePath = $this->sqliteDatabasePath('create-shard-custom-driver');
+        if (file_exists($databasePath)) {
+            unlink($databasePath);
+        }
+
         $this->artisan('shard:create', [
-            'name' => 'postgres_shard',
-            '--driver' => 'pgsql',
-            '--host' => '127.0.0.1',
-            '--port' => '5432',
-            '--database' => 'postgres_db',
-            '--username' => 'postgres',
-            '--password' => 'secret',
+            'name' => 'sqlite_shard_custom_driver',
+            '--driver' => 'sqlite',
+            '--host' => 'localhost',
+            '--port' => '1',
+            '--database' => $databasePath,
+            '--username' => 'ignored',
+            '--password' => '',
+            '--skip-migrate' => true,
         ])
-        ->expectsOutput('Shard "postgres_shard" created successfully!')
+        ->expectsOutput('Shard "sqlite_shard_custom_driver" created successfully!')
         ->assertExitCode(0);
         
-        $metadata = ShardMetadata::where('name', 'postgres_shard')->first();
+        $metadata = ShardMetadata::where('name', 'sqlite_shard_custom_driver')->first();
         $this->assertNotNull($metadata);
     }
 
