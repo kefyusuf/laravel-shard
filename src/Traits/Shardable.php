@@ -82,6 +82,8 @@ trait Shardable
 
             if ($key !== null) {
                 $connection = ShardManager::getShardConnection($table, $key);
+            } else {
+                $connection = $this->getRequestShardConnection();
             }
         }
 
@@ -132,7 +134,26 @@ trait Shardable
      */
     public function newEloquentBuilder($query): Builder
     {
+        if ($this->shardConnection === null) {
+            $requestShardConnection = $this->getRequestShardConnection();
+            if ($requestShardConnection !== null) {
+                $this->setConnection($requestShardConnection);
+                $this->shardConnection = $requestShardConnection;
+            }
+        }
+
         return new ShardableBuilder($query);
+    }
+
+    protected function getRequestShardConnection(): ?string
+    {
+        if (!app()->bound('request')) {
+            return null;
+        }
+
+        $connection = app('request')->attributes->get('shard_connection');
+
+        return is_string($connection) && $connection !== '' ? $connection : null;
     }
 
     /**
