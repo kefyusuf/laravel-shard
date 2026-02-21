@@ -40,6 +40,7 @@ class ShardCleanupCommand extends Command
         $redisConnection = config('redis_sharding.redis_connection', 'default');
         $redis = app('redis')->connection($redisConnection);
         $shards = ShardManager::getAvailableShards();
+        $shardLookup = array_fill_keys($shards, true);
 
         $this->info($dryRun ? 'Running cleanup in dry-run mode...' : 'Running cleanup...');
 
@@ -69,7 +70,7 @@ class ShardCleanupCommand extends Command
             $scannedKeys++;
 
             $locatedShard = $locator->locate($table, $recordKey);
-            if ($locatedShard === null) {
+            if ($locatedShard === null || !isset($shardLookup[$locatedShard])) {
                 $orphanedKeys++;
 
                 if (!$dryRun) {

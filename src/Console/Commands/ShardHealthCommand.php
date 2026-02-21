@@ -178,6 +178,7 @@ class ShardHealthCommand extends Command
     protected function checkOrphanedKeys(ShardLocatorInterface $locator): array
     {
         $issues = [];
+        $shardLookup = array_fill_keys(ShardManager::getAvailableShards(), true);
         
         try {
             $redis = app('redis');
@@ -195,7 +196,7 @@ class ShardHealthCommand extends Command
                 $recordKey = $parts[2];
                 
                 $shardConnection = $locator->locate($table, $recordKey);
-                if ($shardConnection === null) {
+                if ($shardConnection === null || !isset($shardLookup[$shardConnection])) {
                     $orphanedCount++;
                 }
             }
