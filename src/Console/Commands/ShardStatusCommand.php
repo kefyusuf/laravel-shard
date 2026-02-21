@@ -87,9 +87,16 @@ class ShardStatusCommand extends Command
             $this->table(['Shard', 'Status', 'Records', 'Last Rebalanced', 'Created'], $data);
         }
 
+        $defaultStrategy = 'N/A';
+        try {
+            $defaultStrategy = ShardManager::strategy()->getName();
+        } catch (\Throwable $e) {
+            // Keep command output resilient even if strategy configuration is incomplete.
+        }
+
         $this->info("\nTotal Shards: " . count($shards));
         $this->info("Active Strategies: " . ShardManager::strategies()->count());
-        $this->info("Default Strategy: " . ShardManager::strategy()->getName());
+        $this->info("Default Strategy: {$defaultStrategy}");
 
         return 0;
     }
