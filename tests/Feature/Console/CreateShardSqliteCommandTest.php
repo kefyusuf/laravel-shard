@@ -34,4 +34,27 @@ class CreateShardSqliteCommandTest extends TestCase
         $this->assertFileExists($databasePath);
         $this->assertNotNull(ShardMetadata::where('name', $shardName)->first());
     }
+
+    public function test_it_accepts_zero_port_value_for_sqlite_driver(): void
+    {
+        $suffix = bin2hex(random_bytes(4));
+        $shardName = "sqlite_shard_zero_port_{$suffix}";
+        $databasePath = __DIR__ . "/../../tmp/new-shard-zero-port-{$suffix}.sqlite";
+        if (file_exists($databasePath)) {
+            unlink($databasePath);
+        }
+
+        $this->artisan('shard:create', [
+            'name' => $shardName,
+            '--driver' => 'sqlite',
+            '--host' => 'localhost',
+            '--port' => '0',
+            '--database' => $databasePath,
+            '--username' => 'ignored',
+            '--password' => '',
+            '--skip-migrate' => true,
+        ])
+            ->expectsOutput("Shard \"{$shardName}\" created successfully!")
+            ->assertExitCode(0);
+    }
 }

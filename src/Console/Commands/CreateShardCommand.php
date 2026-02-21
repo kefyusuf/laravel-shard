@@ -51,7 +51,8 @@ class CreateShardCommand extends Command
         // Validate required parameters
         $requiredOptions = ['host', 'port', 'username'];
         foreach ($requiredOptions as $option) {
-            if (empty($this->option($option))) {
+            $value = $this->option($option);
+            if ($value === null || $value === '') {
                 $this->error('All database connection parameters are required.');
                 return 1;
             }
