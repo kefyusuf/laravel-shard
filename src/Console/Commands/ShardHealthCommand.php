@@ -6,11 +6,14 @@ namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardHealthCommand extends Command
 {
+    use ValidatesOutputFormat;
+
     /**
      * @var bool
      */
@@ -41,9 +44,8 @@ class ShardHealthCommand extends Command
     public function handle(ShardLocatorInterface $locator): int
     {
         $fix = $this->option('fix');
-        $format = (string) $this->option('format');
-        if (!in_array($format, ['table', 'json'], true)) {
-            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+        $format = $this->validateOutputFormat((string) $this->option('format'));
+        if ($format === null) {
             return 1;
         }
 

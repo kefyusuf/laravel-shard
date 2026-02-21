@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
@@ -12,6 +13,8 @@ use Laravel\RedisShard\Models\ShardMetadata;
 
 class RebalanceShardCommand extends Command
 {
+    use ValidatesOutputFormat;
+
     /**
      * @var bool
      */
@@ -49,9 +52,8 @@ class RebalanceShardCommand extends Command
         $dryRun = $this->option('dry-run');
         $force = $this->option('force');
         $metadataOnly = $this->option('metadata-only');
-        $format = (string) $this->option('format');
-        if (!in_array($format, ['table', 'json'], true)) {
-            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+        $format = $this->validateOutputFormat((string) $this->option('format'));
+        if ($format === null) {
             return 1;
         }
 

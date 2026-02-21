@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 
 class InstallCommand extends Command
 {
+    use ValidatesOutputFormat;
+
     /**
      * The name and signature of the console command.
      *
@@ -31,9 +34,8 @@ class InstallCommand extends Command
      */
     public function handle(): int
     {
-        $format = (string) $this->option('format');
-        if (!in_array($format, ['table', 'json'], true)) {
-            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+        $format = $this->validateOutputFormat((string) $this->option('format'));
+        if ($format === null) {
             return 1;
         }
 

@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardCleanupCommand extends Command
 {
+    use ValidatesOutputFormat;
+
     /**
      * The name and signature of the console command.
      *
@@ -33,9 +36,8 @@ class ShardCleanupCommand extends Command
     public function handle(ShardLocatorInterface $locator): int
     {
         $dryRun = (bool) $this->option('dry-run');
-        $format = (string) $this->option('format');
-        if (!in_array($format, ['table', 'json'], true)) {
-            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+        $format = $this->validateOutputFormat((string) $this->option('format'));
+        if ($format === null) {
             return 1;
         }
 

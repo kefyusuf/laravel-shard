@@ -6,11 +6,14 @@ namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Facades\ShardManager;
 use Laravel\RedisShard\Models\ShardMetadata;
 
 class CreateShardCommand extends Command
 {
+    use ValidatesOutputFormat;
+
     /**
      * The name and signature of the console command.
      *
@@ -42,9 +45,8 @@ class CreateShardCommand extends Command
     public function handle(): int
     {
         $name = $this->argument('name');
-        $format = (string) $this->option('format');
-        if (!in_array($format, ['table', 'json'], true)) {
-            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+        $format = $this->validateOutputFormat((string) $this->option('format'));
+        if ($format === null) {
             return 1;
         }
 

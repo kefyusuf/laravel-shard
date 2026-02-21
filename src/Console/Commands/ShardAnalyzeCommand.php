@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardAnalyzeCommand extends Command
 {
+    use ValidatesOutputFormat;
+
     /**
      * The name and signature of the console command.
      *
@@ -39,9 +42,8 @@ class ShardAnalyzeCommand extends Command
         $table = $this->argument('table');
         $strategy = $this->option('strategy');
         $sampleSize = (int) $this->option('sample-size');
-        $format = (string) $this->option('format');
-        if (!in_array($format, ['table', 'json'], true)) {
-            $this->error('Unsupported format "' . $format . '". Allowed: table, json.');
+        $format = $this->validateOutputFormat((string) $this->option('format'));
+        if ($format === null) {
             return 1;
         }
 
