@@ -34,7 +34,6 @@ class InstallCommandTest extends TestCase
         $this->artisan('redis-shard:install', [
             '--skip-migrate' => true,
             '--format' => 'json',
-        ])
-            ->assertExitCode(0);
+        ])->assertExitCode(0);
     }
 }

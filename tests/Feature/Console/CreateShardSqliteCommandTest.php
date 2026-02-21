@@ -77,8 +77,7 @@ class CreateShardSqliteCommandTest extends TestCase
             '--password' => '',
             '--skip-migrate' => true,
             '--format' => 'json',
-        ])
-            ->assertExitCode(0);
+        ])->assertExitCode(0);
         $this->assertFileExists($databasePath);
         $this->assertNotNull(ShardMetadata::where('name', $shardName)->first());
     }

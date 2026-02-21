@@ -9,6 +9,38 @@ use Laravel\RedisShard\Tests\TestCase;
 
 class CreateShardCommandPayloadTest extends TestCase
 {
+    public function test_respond_emits_valid_json_payload_in_json_mode(): void
+    {
+        $command = new class extends CreateShardCommand {
+            public string $capturedLine = '';
+
+            public function exposedRespond(int $exitCode, bool $jsonOutput, array $payload): int
+            {
+                return $this->respond($exitCode, $jsonOutput, $payload);
+            }
+
+            public function line($string, $style = null, $verbosity = null): void
+            {
+                $this->capturedLine = (string) $string;
+            }
+        };
+
+        $payload = [
+            'summary' => [
+                'status' => 'ok',
+                'shard' => 'shard1',
+                'created' => true,
+            ],
+        ];
+
+        $exitCode = $command->exposedRespond(0, true, $payload);
+
+        $this->assertSame(0, $exitCode);
+        $decoded = json_decode($command->capturedLine, true);
+        $this->assertIsArray($decoded);
+        $this->assertSame('ok', $decoded['summary']['status'] ?? null);
+    }
+
     public function test_build_success_payload_has_expected_schema(): void
     {
         $command = new class extends CreateShardCommand {
