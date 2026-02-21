@@ -42,9 +42,15 @@ class ShardHealthCommand extends Command
         
         $issues = [];
         $issues = array_merge($issues, $this->checkShardConnectivity());
-        $issues = array_merge($issues, $this->checkRedisConnectivity());
-        $issues = array_merge($issues, $this->checkShardBalance($locator));
-        $issues = array_merge($issues, $this->checkOrphanedKeys($locator));
+        $redisIssues = $this->checkRedisConnectivity();
+        $issues = array_merge($issues, $redisIssues);
+
+        if (empty($redisIssues)) {
+            $issues = array_merge($issues, $this->checkShardBalance($locator));
+            $issues = array_merge($issues, $this->checkOrphanedKeys($locator));
+        } else {
+            $this->warn('Skipping shard balance/orphan checks because Redis is unavailable.');
+        }
         
         if (empty($issues)) {
             $this->info('✅ All shards are healthy!');
@@ -252,9 +258,11 @@ class ShardHealthCommand extends Command
     {
         $fixed = 0;
         $failed = 0;
+        $unresolved = 0;
         
         foreach ($issues as $issue) {
             if (!$issue['fixable']) {
+                $unresolved++;
                 continue;
             }
             
@@ -279,11 +287,12 @@ class ShardHealthCommand extends Command
             } catch (\Exception $e) {
                 $this->error("Failed to fix issue: {$e->getMessage()}");
                 $failed++;
+                $unresolved++;
             }
         }
         
-        $this->info("Fixed {$fixed} issue(s), {$failed} failed.");
-        return $failed > 0 ? 1 : 0;
+        $this->info("Fixed {$fixed} issue(s), {$failed} failed, {$unresolved} unresolved.");
+        return $unresolved > 0 ? 1 : 0;
     }
 
 }
