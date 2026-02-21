@@ -15,9 +15,11 @@ use Laravel\RedisShard\Console\Commands\ShardCleanupCommand;
 use Laravel\RedisShard\Console\Commands\ShardHealthCommand;
 use Laravel\RedisShard\Console\Commands\ShardStatusCommand;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
+use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Database\ShardConnection;
 use Laravel\RedisShard\Middleware\ShardRouteMiddleware;
 use Laravel\RedisShard\Models\ShardMetadata;
+use Laravel\RedisShard\Rebalance\DatabaseRebalanceDataMover;
 use Laravel\RedisShard\Strategies\ConsistentHashingStrategy;
 use Laravel\RedisShard\Strategies\ModuloStrategy;
 use Laravel\RedisShard\Strategies\RangeBasedStrategy;
@@ -82,6 +84,12 @@ class RedisShardServiceProvider extends ServiceProvider
         $this->app->bind(RangeBasedStrategy::class, function () {
             return new RangeBasedStrategy();
         });
+
+        if ((bool) config('redis_sharding.rebalance.enable_default_data_mover', false)) {
+            $this->app->singleton(RebalanceDataMoverInterface::class, function () {
+                return new DatabaseRebalanceDataMover();
+            });
+        }
     }
 
     /**

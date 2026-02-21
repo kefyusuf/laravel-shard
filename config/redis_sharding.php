@@ -62,6 +62,15 @@ return [
     // Tables monitored by health/status/monitoring commands
     'monitored_tables' => ['users', 'orders', 'products'],
 
+    // Rebalance data mover settings
+    'rebalance' => [
+        'enable_default_data_mover' => env('REDIS_SHARD_REBALANCE_ENABLE_MOVER', false),
+        'delete_source_after_copy' => env('REDIS_SHARD_REBALANCE_DELETE_SOURCE', true),
+        'table_key_columns' => [
+            // 'users' => 'id',
+        ],
+    ],
+
     // Cache TTL for shard lookups (in seconds)
     'cache_ttl' => env('REDIS_SHARD_CACHE_TTL', 3600),
 ];
