@@ -7,6 +7,7 @@ namespace Laravel\RedisShard\Tests\Feature\Console;
 use Illuminate\Support\Facades\Facade;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
+use Laravel\RedisShard\Facades\ShardManager;
 use Laravel\RedisShard\Tests\TestCase;
 
 class RebalanceShardCommandTest extends TestCase
@@ -85,7 +86,74 @@ class RebalanceShardCommandTest extends TestCase
             '--force' => true,
         ])->assertExitCode(0);
 
+        $expectedShard = ShardManager::strategy()->determine('users', '1', ShardManager::getAvailableShards());
         $this->assertSame(1, $mover->moves);
-        $this->assertSame('shard2', $locator->locate('users', '1'));
+        $this->assertSame($expectedShard, $locator->locate('users', '1'));
+    }
+
+    public function test_metadata_only_mode_does_not_call_data_mover(): void
+    {
+        $locator = new class implements ShardLocatorInterface {
+            /** @var array<string, array<string, string>> */
+            public array $keys = [
+                'users' => [
+                    '1' => 'shard1',
+                ],
+            ];
+
+            public function locate(string $table, mixed $key): ?string
+            {
+                return $this->keys[$table][(string) $key] ?? null;
+            }
+
+            public function register(string $table, mixed $key, string $shardConnection): bool
+            {
+                $this->keys[$table][(string) $key] = $shardConnection;
+                return true;
+            }
+
+            public function forget(string $table, mixed $key): bool
+            {
+                if (!isset($this->keys[$table][(string) $key])) {
+                    return false;
+                }
+
+                unset($this->keys[$table][(string) $key]);
+                return true;
+            }
+
+            public function getKeysForShard(string $table, string $shardConnection): array
+            {
+                $keys = [];
+                foreach (($this->keys[$table] ?? []) as $key => $shard) {
+                    if ($shard === $shardConnection) {
+                        $keys[] = $key;
+                    }
+                }
+
+                return $keys;
+            }
+        };
+
+        $mover = new class implements RebalanceDataMoverInterface {
+            public function move(string $table, mixed $key, string $fromShard, string $toShard): bool
+            {
+                throw new \RuntimeException('Data mover must not be called in metadata-only mode.');
+            }
+        };
+
+        $this->app->instance(ShardLocatorInterface::class, $locator);
+        $this->app->instance('shard.locator', $locator);
+        $this->app->instance(RebalanceDataMoverInterface::class, $mover);
+        Facade::clearResolvedInstance('shard.manager');
+
+        $this->artisan('shard:rebalance', [
+            'table' => 'users',
+            '--force' => true,
+            '--metadata-only' => true,
+        ])->assertExitCode(0);
+
+        $expectedShard = ShardManager::strategy()->determine('users', '1', ShardManager::getAvailableShards());
+        $this->assertSame($expectedShard, $locator->locate('users', '1'));
     }
 }
