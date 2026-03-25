@@ -86,7 +86,11 @@ class ShardableRoutingTest extends TestCase
             protected $table = 'users';
             public $timestamps = false;
             protected $fillable = ['email', 'name'];
-            protected $shardKey = 'email';
+
+            public function getShardKeyName(): string
+            {
+                return 'email';
+            }
         };
 
         $model::create([
@@ -194,7 +198,7 @@ class ShardableRoutingTest extends TestCase
     protected function prepareShardDatabase(string $suffix): string
     {
         $dir = __DIR__ . '/../tmp';
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
 

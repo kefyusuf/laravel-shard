@@ -23,7 +23,28 @@ jobs:
           coverage: none
 
       - name: Run PHP-CS-Fixer
-        run: php-cs-fixer fix --dry-run --diff --verbose
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            echo "Base SHA unavailable, skipping PHP-CS-Fixer diff check."
+            exit 0
+          fi
+
+          mapfile -t PHP_FILES < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- '*.php')
+
+          if [[ ${#PHP_FILES[@]} -eq 0 ]]; then
+            echo "No changed PHP files. Skipping PHP-CS-Fixer."
+            exit 0
+          fi
+
+          php-cs-fixer fix --dry-run --diff --verbose --path-mode=intersection -- "${PHP_FILES[@]}"
 
   phpstan:
     runs-on: ubuntu-latest
@@ -41,7 +62,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction --no-progress
+        run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --error-format=github

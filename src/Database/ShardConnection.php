@@ -39,16 +39,18 @@ class ShardConnection implements ConnectionResolverInterface
     /**
      * Get a database connection instance.
      *
-     * @param string|null $name
+     * @param mixed $name
      * @return ConnectionInterface
      */
-    public function connection(?string $name = null): ConnectionInterface
+    public function connection($name = null): ConnectionInterface
     {
         if ($name === null) {
             $name = $this->getDefaultConnection();
         }
 
-        if (!isset($this->connections[$name])) {
+        $name = (string) $name;
+
+        if (! isset($this->connections[$name])) {
             $this->connections[$name] = $this->makeConnection($name);
         }
 
@@ -76,9 +78,9 @@ class ShardConnection implements ConnectionResolverInterface
      */
     protected function getConnectionConfig(string $name): array
     {
-        $connections = Config::get('redis_sharding.connections', []);
+        $connections = (array) Config::get('redis_sharding.connections', []);
 
-        if (!isset($connections[$name])) {
+        if (! isset($connections[$name])) {
             throw new \InvalidArgumentException("Shard connection [{$name}] not configured.");
         }
 
@@ -92,18 +94,18 @@ class ShardConnection implements ConnectionResolverInterface
      */
     public function getDefaultConnection(): string
     {
-        return Config::get('database.default');
+        return (string) Config::get('database.default');
     }
 
     /**
      * Set the default connection name.
      *
-     * @param string $name
+     * @param mixed $name
      * @return void
      */
-    public function setDefaultConnection(string $name): void
+    public function setDefaultConnection($name): void
     {
-        Config::set('database.default', $name);
+        Config::set('database.default', (string) $name);
     }
 
     /**

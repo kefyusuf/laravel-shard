@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Database;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardableBuilder extends Builder
@@ -101,7 +102,7 @@ class ShardableBuilder extends Builder
         if ($shardKeyName === $keyName) {
             foreach ($ids as $id) {
                 $shardConnection = $this->resolveShardConnectionForKey($table, $id);
-                
+
                 if ($shardConnection === null) {
                     // If we don't know the shard, we'll need to check all shards
                     $shardGroups['unknown'][] = $id;
@@ -123,7 +124,11 @@ class ShardableBuilder extends Builder
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
 
-                $results = $results->merge($shardResults);
+                foreach ($shardResults as $shardResult) {
+                    if ($shardResult instanceof Model) {
+                        $results->push($shardResult);
+                    }
+                }
                 continue;
             }
 
@@ -132,7 +137,11 @@ class ShardableBuilder extends Builder
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
 
-                $results = $results->merge($shardResults);
+                foreach ($shardResults as $shardResult) {
+                    if ($shardResult instanceof Model) {
+                        $results->push($shardResult);
+                    }
+                }
             }
         }
 
@@ -153,7 +162,7 @@ class ShardableBuilder extends Builder
         $table = $model->getTable();
 
         $wheres = $this->getQuery()->wheres;
-        
+
         foreach ($wheres as $where) {
             $column = isset($where['column']) ? (string) $where['column'] : '';
             $normalizedColumn = str_contains($column, '.') ? (string) substr(strrchr($column, '.'), 1) : $column;

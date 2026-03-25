@@ -5,4 +5,3 @@ parameters:
     excludePaths:
         - src/Console/Commands/*
     tmpDir: build/phpstan
-    checkMissingIterableValueType: false

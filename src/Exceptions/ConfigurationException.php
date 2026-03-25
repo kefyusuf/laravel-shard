@@ -24,11 +24,11 @@ class ConfigurationException extends Exception
      * Create an exception for missing configuration.
      *
      * @param string $key
-     * @return static
+     * @return self
      */
-    public static function missingConfig(string $key): static
+    public static function missingConfig(string $key): self
     {
-        return new static("Missing required configuration: {$key}");
+        return new self("Missing required configuration: {$key}");
     }
 
     /**
@@ -37,33 +37,34 @@ class ConfigurationException extends Exception
      * @param string $key
      * @param mixed $value
      * @param string $expected
-     * @return static
+     * @return self
      */
-    public static function invalidConfig(string $key, mixed $value, string $expected): static
+    public static function invalidConfig(string $key, mixed $value, string $expected): self
     {
         $actualType = is_object($value) ? get_class($value) : gettype($value);
-        return new static("Invalid configuration for {$key}. Expected {$expected}, got {$actualType}");
+
+        return new self("Invalid configuration for {$key}. Expected {$expected}, got {$actualType}");
     }
 
     /**
      * Create an exception for invalid strategy.
      *
      * @param string $strategy
-     * @return static
+     * @return self
      */
-    public static function invalidStrategy(string $strategy): static
+    public static function invalidStrategy(string $strategy): self
     {
-        return new static("Invalid sharding strategy: {$strategy}");
+        return new self("Invalid sharding strategy: {$strategy}");
     }
 
     /**
      * Create an exception for invalid connection.
      *
      * @param string $connection
-     * @return static
+     * @return self
      */
-    public static function invalidConnection(string $connection): static
+    public static function invalidConnection(string $connection): self
     {
-        return new static("Invalid shard connection: {$connection}");
+        return new self("Invalid shard connection: {$connection}");
     }
 }

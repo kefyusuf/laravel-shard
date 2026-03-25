@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\RedisShard;
 
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Redis\Connections\Connection;
 use Illuminate\Redis\RedisManager;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 
@@ -25,11 +26,12 @@ class ShardLocator implements ShardLocatorInterface
     /**
      * Get the Redis connection.
      *
-     * @return \Illuminate\Redis\Connections\Connection
+     * @return Connection
      */
-    protected function getConnection()
+    protected function getConnection(): Connection
     {
         $connection = $this->config->get('redis_sharding.redis_connection', 'default');
+
         return $this->redis->connection($connection);
     }
 
@@ -74,9 +76,9 @@ class ShardLocator implements ShardLocatorInterface
     public function locate(string $table, mixed $key): ?string
     {
         $redisKey = $this->generateRedisKey($table, $key);
-        $shardConnection = $this->getConnection()->get($redisKey);
-        
-        return $shardConnection;
+        $shardConnection = $this->getConnection()->command('get', [$redisKey]);
+
+        return is_string($shardConnection) && $shardConnection !== '' ? $shardConnection : null;
     }
 
     /**
@@ -86,21 +88,18 @@ class ShardLocator implements ShardLocatorInterface
     {
         $redisKey = $this->generateRedisKey($table, $key);
         $shardMapKey = $this->generateShardPattern($table, $shardConnection);
-        
-        $ttl = $this->config->get('redis_sharding.cache_ttl', 3600);
-        
-        $this->getConnection()->pipeline(function ($pipeline) use ($redisKey, $shardConnection, $ttl, $shardMapKey, $key): void {
-            // Store the shard connection for this key
-            $pipeline->set($redisKey, $shardConnection);
 
-            if ($ttl > 0) {
-                $pipeline->expire($redisKey, $ttl);
-            }
+        $ttl = (int) $this->config->get('redis_sharding.cache_ttl', 3600);
+        $connection = $this->getConnection();
 
-            // Add this key to the set of keys for this shard
-            $pipeline->sadd($shardMapKey, (string) $key);
-        });
-        
+        $connection->command('set', [$redisKey, $shardConnection]);
+
+        if ($ttl > 0) {
+            $connection->command('expire', [$redisKey, $ttl]);
+        }
+
+        $connection->command('sadd', [$shardMapKey, (string) $key]);
+
         return true;
     }
 
@@ -111,18 +110,17 @@ class ShardLocator implements ShardLocatorInterface
     {
         $redisKey = $this->generateRedisKey($table, $key);
         $shardConnection = $this->locate($table, $key);
-        
+
         if ($shardConnection === null) {
             return false;
         }
-        
+
         $shardMapKey = $this->generateShardPattern($table, $shardConnection);
-        
-        $this->getConnection()->pipeline(function ($pipeline) use ($redisKey, $shardMapKey, $key): void {
-            $pipeline->del($redisKey);
-            $pipeline->srem($shardMapKey, (string) $key);
-        });
-        
+
+        $connection = $this->getConnection();
+        $connection->command('del', [$redisKey]);
+        $connection->command('srem', [$shardMapKey, (string) $key]);
+
         return true;
     }
 
@@ -132,6 +130,8 @@ class ShardLocator implements ShardLocatorInterface
     public function getKeysForShard(string $table, string $shardConnection): array
     {
         $shardMapKey = $this->generateShardPattern($table, $shardConnection);
-        return $this->getConnection()->smembers($shardMapKey);
+        $members = $this->getConnection()->command('smembers', [$shardMapKey]);
+
+        return is_array($members) ? $members : [];
     }
 }

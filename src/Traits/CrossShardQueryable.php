@@ -220,7 +220,7 @@ trait CrossShardQueryable
         $results = [];
 
         foreach ($shards as $shard) {
-            $model = new static();
+            $model = static::query()->getModel()->newInstance();
             $model->setConnection($shard);
             $results[$shard] = $callback($model, $shard);
         }
