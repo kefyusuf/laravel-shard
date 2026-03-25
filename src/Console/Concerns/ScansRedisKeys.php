@@ -20,6 +20,7 @@ trait ScansRedisKeys
         }
 
         $seenKeys = [];
+        $yieldedAny = false;
 
         foreach ($scanPatterns as $scanPattern) {
             $cursor = 0;
@@ -43,6 +44,7 @@ trait ScansRedisKeys
                         }
 
                         $seenKeys[$normalized] = true;
+                        $yieldedAny = true;
                         yield $normalized;
                     }
                     return;
@@ -71,6 +73,7 @@ trait ScansRedisKeys
                     }
 
                     $seenKeys[$normalized] = true;
+                    $yieldedAny = true;
                     yield $normalized;
                 }
 
@@ -79,6 +82,24 @@ trait ScansRedisKeys
 
             if ($matchedAny) {
                 return;
+            }
+        }
+
+        if ($yieldedAny) {
+            return;
+        }
+
+        // Runtime clients can report empty SCAN results for prefixed keys in some environments.
+        // Fallback to KEYS only when SCAN yielded nothing.
+        foreach ($scanPatterns as $scanPattern) {
+            foreach ((array) $redis->keys($scanPattern) as $key) {
+                $normalized = (string) $key;
+                if (isset($seenKeys[$normalized])) {
+                    continue;
+                }
+
+                $seenKeys[$normalized] = true;
+                yield $normalized;
             }
         }
     }
