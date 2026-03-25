@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Database;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardableBuilder extends Builder
@@ -121,27 +120,19 @@ class ShardableBuilder extends Builder
         foreach ($shardGroups as $shardConnection => $shardIds) {
             if ($shardConnection !== 'unknown') {
                 $query = $this->newQueryForShard($shardConnection);
+                /** @var \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model> $shardResults */
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
-
-                foreach ($shardResults as $shardResult) {
-                    if ($shardResult instanceof Model) {
-                        $results->push($shardResult);
-                    }
-                }
+                $results = $results->merge($shardResults);
                 continue;
             }
 
             foreach (ShardManager::getAvailableShards() as $availableShard) {
                 $query = $this->newQueryForShard($availableShard);
+                /** @var \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model> $shardResults */
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
-
-                foreach ($shardResults as $shardResult) {
-                    if ($shardResult instanceof Model) {
-                        $results->push($shardResult);
-                    }
-                }
+                $results = $results->merge($shardResults);
             }
         }
 

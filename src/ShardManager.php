@@ -169,7 +169,7 @@ class ShardManager
         }
 
         // Create metadata record
-        ShardMetadata::create([
+        ShardMetadata::query()->create([
             'name' => $name,
             'connection' => $name,
             'created_at' => now(),

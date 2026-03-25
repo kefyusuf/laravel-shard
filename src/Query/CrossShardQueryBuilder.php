@@ -7,13 +7,12 @@ namespace Laravel\RedisShard\Query;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection as BaseCollection;
 use Laravel\RedisShard\Facades\ShardManager;
 
 class CrossShardQueryBuilder
 {
     /**
-     * @var string
+     * @var class-string<Model>
      */
     protected string $modelClass;
 
@@ -45,7 +44,7 @@ class CrossShardQueryBuilder
     /**
      * Create a new cross-shard query builder.
      *
-     * @param string $modelClass
+     * @param class-string<Model> $modelClass
      */
     public function __construct(string $modelClass)
     {
@@ -178,6 +177,7 @@ class CrossShardQueryBuilder
 
         foreach ($shards as $shard) {
             $query = $this->buildShardQuery($shard);
+            /** @var Collection<int, Model> $shardResults */
             $shardResults = $query->get();
             
             // Add shard information to each model
