@@ -34,15 +34,7 @@ trait Shardable
     public static function bootShardable(): void
     {
         static::creating(function (Model $model) {
-            $defaultConnection = config('database.default');
-            $explicitConnection = $model->getConnectionName();
-            $hasExplicitNonDefaultConnection = is_string($explicitConnection)
-                && $explicitConnection !== ''
-                && $explicitConnection !== $defaultConnection;
-
-            if ($model->shardConnection === null && !$hasExplicitNonDefaultConnection) {
-                $model->setShardConnection();
-            }
+            $model->prepareShardConnectionForWrite();
         });
 
         static::saved(function (Model $model) {
@@ -99,6 +91,38 @@ trait Shardable
         }
 
         return $this;
+    }
+
+    /**
+     * Ensure shard connection is resolved before the insert query builder is created.
+     */
+    protected function prepareShardConnectionForWrite(): void
+    {
+        $defaultConnection = config('database.default');
+        $explicitConnection = $this->getConnectionName();
+        $hasExplicitNonDefaultConnection = is_string($explicitConnection)
+            && $explicitConnection !== ''
+            && $explicitConnection !== $defaultConnection;
+
+        if ($this->shardConnection !== null || $hasExplicitNonDefaultConnection) {
+            return;
+        }
+
+        $this->setShardConnection();
+    }
+
+    /**
+     * Persist the model while resolving shard connection up front for inserts.
+     *
+     * @param array<string, mixed> $options
+     */
+    public function save(array $options = []): bool
+    {
+        if ($this->exists === false) {
+            $this->prepareShardConnectionForWrite();
+        }
+
+        return parent::save($options);
     }
 
     /**

@@ -89,7 +89,14 @@ class ShardCleanupCommand extends Command
             }
         }
 
-        $tablesToClean = !empty($targetTables) ? $targetTables : array_keys($tablesSeen);
+        $tablesToClean = !empty($targetTables)
+            ? $targetTables
+            : (!empty($tablesSeen) ? array_keys($tablesSeen) : (array) config('redis_sharding.monitored_tables', []));
+
+        $tablesToClean = array_values(array_filter(
+            array_unique($tablesToClean),
+            fn ($table): bool => is_string($table) && $table !== ''
+        ));
 
         foreach ($tablesToClean as $table) {
             foreach ($shards as $shard) {

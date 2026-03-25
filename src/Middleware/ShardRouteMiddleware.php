@@ -7,6 +7,7 @@ namespace Laravel\RedisShard\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
+use Laravel\RedisShard\Facades\ShardManager;
 use Symfony\Component\HttpFoundation\Response;
 
 class ShardRouteMiddleware
@@ -36,9 +37,16 @@ class ShardRouteMiddleware
 
         if ($keyValue !== null) {
             $shardConnection = $this->locator->locate($table, $keyValue);
-            
-            if ($shardConnection !== null) {
-                // Store the shard connection in the request attributes
+
+            if ($shardConnection === null) {
+                try {
+                    $shardConnection = ShardManager::getShardConnection($table, $keyValue);
+                } catch (\Throwable $e) {
+                    $shardConnection = null;
+                }
+            }
+
+            if (is_string($shardConnection) && $shardConnection !== '') {
                 $request->attributes->set('shard_connection', $shardConnection);
             }
         }
