@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard;
 
-
 use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Support\ServiceProvider;
 use Laravel\RedisShard\Console\Commands\CreateShardCommand;
@@ -18,7 +17,6 @@ use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Database\ShardConnection;
 use Laravel\RedisShard\Middleware\ShardRouteMiddleware;
-use Laravel\RedisShard\Models\ShardMetadata;
 use Laravel\RedisShard\Rebalance\DatabaseRebalanceDataMover;
 use Laravel\RedisShard\Strategies\ConsistentHashingStrategy;
 use Laravel\RedisShard\Strategies\ModuloStrategy;
@@ -54,7 +52,8 @@ class RedisShardServiceProvider extends ServiceProvider
             return new ShardManager(
                 $app->make('config'),
                 $app->make('db'),
-                $app->make(ShardLocatorInterface::class)
+                $app->make(ShardLocatorInterface::class),
+                $app
             );
         });
 
@@ -103,17 +102,20 @@ class RedisShardServiceProvider extends ServiceProvider
         if (!$this->app->environment('testing')) {
             try {
                 $config = config('redis_sharding', []);
-                ConfigValidator::validate($config);
+                $connections = $config['connections'] ?? [];
+
+                // Allow package installation with empty shard definitions.
+                if (is_array($connections) && !empty($connections)) {
+                    ConfigValidator::validate($config);
+                }
             } catch (\Laravel\RedisShard\Exceptions\ConfigurationException $e) {
                 $strictValidation = (bool) config('redis_sharding.strict_validation', true);
 
-                if ($this->app->environment('production') && !$strictValidation) {
-                    // Log the error in production but don't crash the app
-                    logger()->error('Redis Sharding Configuration Error: ' . $e->getMessage());
-                } else {
-                    // Throw the exception outside production or when strict validation is enabled
+                if ($strictValidation) {
                     throw $e;
                 }
+
+                logger()->warning('Redis Sharding Configuration Error: ' . $e->getMessage());
             }
         }
 

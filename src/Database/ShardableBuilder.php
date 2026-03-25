@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Database;
 
 use Illuminate\Database\Eloquent\Builder;
+use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardableBuilder extends Builder
 {
@@ -63,7 +64,7 @@ class ShardableBuilder extends Builder
 
         // If the shard key is the primary key, we can locate the shard
         if ($shardKeyName === $keyName) {
-            $shardConnection = app('shard.locator')->locate($table, $id);
+            $shardConnection = $this->resolveShardConnectionForKey($table, $id);
 
             if ($shardConnection !== null) {
                 return $this->runOnShard(
@@ -99,7 +100,7 @@ class ShardableBuilder extends Builder
         // If the shard key is the primary key, we can locate the shard for each ID
         if ($shardKeyName === $keyName) {
             foreach ($ids as $id) {
-                $shardConnection = app('shard.locator')->locate($table, $id);
+                $shardConnection = $this->resolveShardConnectionForKey($table, $id);
                 
                 if ($shardConnection === null) {
                     // If we don't know the shard, we'll need to check all shards
@@ -119,17 +120,23 @@ class ShardableBuilder extends Builder
         foreach ($shardGroups as $shardConnection => $shardIds) {
             if ($shardConnection !== 'unknown') {
                 $query = $this->newQueryForShard($shardConnection);
-            } else {
-                $query = $this->model->newQuery();
+                $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
+                    ->get($columns);
+
+                $results = $results->merge($shardResults);
+                continue;
             }
 
-            $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
-                ->get($columns);
+            foreach (ShardManager::getAvailableShards() as $availableShard) {
+                $query = $this->newQueryForShard($availableShard);
+                $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
+                    ->get($columns);
 
-            $results = $results->merge($shardResults);
+                $results = $results->merge($shardResults);
+            }
         }
 
-        return $results;
+        return $results->unique($this->model->getKeyName())->values();
     }
 
     /**
@@ -148,9 +155,16 @@ class ShardableBuilder extends Builder
         $wheres = $this->getQuery()->wheres;
         
         foreach ($wheres as $where) {
-            if (isset($where['column']) && $where['column'] === $shardKeyName && $where['type'] === 'Basic' && $where['operator'] === '=') {
+            $column = isset($where['column']) ? (string) $where['column'] : '';
+            $normalizedColumn = str_contains($column, '.') ? (string) substr(strrchr($column, '.'), 1) : $column;
+
+            if (
+                $normalizedColumn === $shardKeyName
+                && ($where['type'] ?? null) === 'Basic'
+                && ($where['operator'] ?? null) === '='
+            ) {
                 $shardKeyValue = $where['value'];
-                $shardConnection = app('shard.locator')->locate($table, $shardKeyValue);
+                $shardConnection = $this->resolveShardConnectionForKey($table, $shardKeyValue);
 
                 if ($shardConnection !== null) {
                     return $this->runOnShard(
@@ -162,5 +176,19 @@ class ShardableBuilder extends Builder
         }
 
         return parent::first($columns);
+    }
+
+    protected function resolveShardConnectionForKey(string $table, mixed $key): ?string
+    {
+        $shardConnection = app('shard.locator')->locate($table, $key);
+        if (is_string($shardConnection) && $shardConnection !== '') {
+            return $shardConnection;
+        }
+
+        try {
+            return ShardManager::getShardConnection($table, $key);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

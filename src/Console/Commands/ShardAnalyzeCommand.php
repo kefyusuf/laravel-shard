@@ -16,6 +16,11 @@ class ShardAnalyzeCommand extends Command
     use ValidatesOutputFormat;
 
     /**
+     * @var bool
+     */
+    protected bool $jsonOutput = false;
+
+    /**
      * The name and signature of the console command.
      *
      * @var string
@@ -49,12 +54,22 @@ class ShardAnalyzeCommand extends Command
             return 1;
         }
 
+        $this->jsonOutput = $format === 'json';
+
         if ($table) {
             return $this->analyzeTable($table, $locator, $format);
         }
 
         if ($sampleSize < 2) {
-            $this->error('Sample size must be at least 2.');
+            if ($this->jsonOutput) {
+                $this->emitJson($this->makeErrorPayload('Sample size must be at least 2.', [
+                    'status' => 'error',
+                    'sample_size' => $sampleSize,
+                ]));
+            } else {
+                $this->error('Sample size must be at least 2.');
+            }
+
             return 1;
         }
 
@@ -72,20 +87,34 @@ class ShardAnalyzeCommand extends Command
      */
     protected function analyzeOverall(ShardLocatorInterface $locator, ?string $strategy, int $sampleSize, string $format): int
     {
-        $this->info('Analyzing shard distribution...');
+        if (!$this->jsonOutput) {
+            $this->info('Analyzing shard distribution...');
+        }
         
         $shards = ShardManager::getAvailableShards();
         if (empty($shards)) {
-            $this->error('No available shards found.');
+            if ($this->jsonOutput) {
+                $this->emitJson($this->makeErrorPayload('No available shards found.', [
+                    'status' => 'error',
+                    'sample_size' => $sampleSize,
+                    'strategy' => $strategy,
+                ]));
+            } else {
+                $this->error('No available shards found.');
+            }
+
             return 1;
         }
 
         $strategies = $strategy ? [$strategy] : ShardManager::strategies()->keys()->toArray();
         
         $results = [];
+        $errors = [];
         
         foreach ($strategies as $strategyName) {
-            $this->line("Testing strategy: {$strategyName}");
+            if (!$this->jsonOutput) {
+                $this->line("Testing strategy: {$strategyName}");
+            }
             
             try {
                 $strategyInstance = ShardManager::strategy($strategyName);
@@ -97,16 +126,29 @@ class ShardAnalyzeCommand extends Command
                     'std_deviation' => $this->calculateStandardDeviation($distribution),
                 ];
             } catch (\Exception $e) {
-                $this->error("Failed to test strategy {$strategyName}: {$e->getMessage()}");
+                $errors[] = [
+                    'strategy' => $strategyName,
+                    'error' => $e->getMessage(),
+                ];
+
+                if (!$this->jsonOutput) {
+                    $this->error("Failed to test strategy {$strategyName}: {$e->getMessage()}");
+                }
                 continue;
             }
         }
         
         if ($format === 'json') {
-            $this->emitJson([
+            $payload = [
                 'summary' => $this->buildOverallSummary($results, $sampleSize),
                 'results' => $results,
-            ]);
+            ];
+
+            if (!empty($errors)) {
+                $payload['errors'] = $errors;
+            }
+
+            $this->emitJson($payload);
         } else {
             $this->displayAnalysisResults($results, $sampleSize);
         }
@@ -124,11 +166,21 @@ class ShardAnalyzeCommand extends Command
      */
     protected function analyzeTable(string $table, ShardLocatorInterface $locator, string $format): int
     {
-        $this->info("Analyzing table: {$table}");
+        if (!$this->jsonOutput) {
+            $this->info("Analyzing table: {$table}");
+        }
         
         $shards = ShardManager::getAvailableShards();
         if (empty($shards)) {
-            $this->error('No available shards found.');
+            if ($this->jsonOutput) {
+                $this->emitJson($this->makeErrorPayload('No available shards found.', [
+                    'status' => 'error',
+                    'table' => $table,
+                ]));
+            } else {
+                $this->error('No available shards found.');
+            }
+
             return 1;
         }
 
@@ -143,7 +195,24 @@ class ShardAnalyzeCommand extends Command
         }
         
         if ($totalKeys === 0) {
-            $this->warn("No keys found for table '{$table}'");
+            if ($this->jsonOutput) {
+                $this->emitJson([
+                    'summary' => [
+                        'status' => 'no_keys',
+                        'table' => $table,
+                        'total_keys' => 0,
+                        'shard_count' => count($shards),
+                    ],
+                    'analysis' => [
+                        'table' => $table,
+                        'total_keys' => 0,
+                        'distribution' => [],
+                    ],
+                ]);
+            } else {
+                $this->warn("No keys found for table '{$table}'");
+            }
+
             return 0;
         }
         

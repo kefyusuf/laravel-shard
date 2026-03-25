@@ -7,6 +7,7 @@ namespace Laravel\RedisShard\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
+use Laravel\RedisShard\Console\Concerns\ScansRedisKeys;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
@@ -14,6 +15,7 @@ use Laravel\RedisShard\Facades\ShardManager;
 class ShardHealthCommand extends Command
 {
     use HandlesJsonOutput;
+    use ScansRedisKeys;
     use ValidatesOutputFormat;
 
     /**
@@ -108,9 +110,9 @@ class ShardHealthCommand extends Command
             ]);
         } else {
             $this->displayIssues($issues);
+            $this->warn('Run with --fix to attempt automatic repairs.');
         }
 
-        $this->warn('Run with --fix to attempt automatic repairs.');
         return 1;
     }
 
@@ -276,10 +278,8 @@ class ShardHealthCommand extends Command
         try {
             $redisConnection = config('redis_sharding.redis_connection', 'default');
             $redis = app('redis')->connection($redisConnection);
-            $keys = $redis->keys('shard:*');
-            
             $orphanedCount = 0;
-            foreach ($keys as $key) {
+            foreach ($this->scanKeys($redis, 'shard:*') as $key) {
                 $parsed = $this->parseShardRedisKey((string) $key);
                 if ($parsed === null) {
                     continue;
@@ -352,7 +352,9 @@ class ShardHealthCommand extends Command
                 continue;
             }
             
-            $this->info("Attempting to fix: {$issue['message']}");
+            if (!$this->jsonOutput) {
+                $this->info("Attempting to fix: {$issue['message']}");
+            }
             
             try {
                 switch ($issue['type']) {
@@ -377,7 +379,9 @@ class ShardHealthCommand extends Command
                         break;
                 }
             } catch (\Exception $e) {
-                $this->error("Failed to fix issue: {$e->getMessage()}");
+                if (!$this->jsonOutput) {
+                    $this->error("Failed to fix issue: {$e->getMessage()}");
+                }
                 $failed++;
                 $unresolved++;
             }

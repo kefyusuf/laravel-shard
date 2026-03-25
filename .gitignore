@@ -1,0 +1,48 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Laravel & PHP
+*.log
+*.cache
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+.phpunit.cache/
+
+# IDE & Editors
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build & Testing
+/build/
+/coverage/
+*.coveragexml
+
+# Composer
+composer.phar
+/vendor/
+
+# Package specific
+.php-cs-fixer.cache
+.phpunit.cache/
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak

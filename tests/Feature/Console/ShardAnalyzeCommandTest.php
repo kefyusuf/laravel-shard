@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard\Tests\Feature\Console;
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Facade;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Tests\TestCase;
@@ -26,6 +27,40 @@ class ShardAnalyzeCommandTest extends TestCase
         ])
             ->expectsOutput('Sample size must be at least 2.')
             ->assertExitCode(1);
+    }
+
+    public function test_json_mode_outputs_parseable_json_only(): void
+    {
+        $exitCode = Artisan::call('shard:analyze', [
+            '--sample-size' => 10,
+            '--format' => 'json',
+        ]);
+
+        $this->assertSame(0, $exitCode);
+
+        $output = trim(Artisan::output());
+        $decoded = json_decode($output, true);
+
+        $this->assertIsArray($decoded);
+        $this->assertArrayHasKey('summary', $decoded);
+        $this->assertArrayHasKey('results', $decoded);
+    }
+
+    public function test_json_mode_outputs_parseable_error_for_invalid_sample_size(): void
+    {
+        $exitCode = Artisan::call('shard:analyze', [
+            '--sample-size' => 0,
+            '--format' => 'json',
+        ]);
+
+        $this->assertSame(1, $exitCode);
+
+        $output = trim(Artisan::output());
+        $decoded = json_decode($output, true);
+
+        $this->assertIsArray($decoded);
+        $this->assertSame('error', $decoded['summary']['status'] ?? null);
+        $this->assertSame('Sample size must be at least 2.', $decoded['error'] ?? null);
     }
 
     public function test_it_fails_when_no_shards_are_configured(): void

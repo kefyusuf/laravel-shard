@@ -20,10 +20,27 @@ class ShardRegistry
             mkdir($directory, 0777, true);
         }
 
-        file_put_contents(
-            $path,
-            json_encode($connections, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-        );
+        $payload = json_encode($connections, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if (!is_string($payload)) {
+            throw new \RuntimeException('Failed to encode shard registry payload.');
+        }
+
+        static::withFileLock($path, LOCK_EX, function () use ($path, $payload): void {
+            $tempPath = $path . '.tmp.' . uniqid('', true);
+
+            $bytes = file_put_contents($tempPath, $payload);
+            if ($bytes === false) {
+                throw new \RuntimeException('Failed to write temporary shard registry file.');
+            }
+
+            if (!@rename($tempPath, $path)) {
+                @unlink($path);
+                if (!@rename($tempPath, $path)) {
+                    @unlink($tempPath);
+                    throw new \RuntimeException('Failed to atomically write shard registry file.');
+                }
+            }
+        });
     }
 
     /**
@@ -37,7 +54,12 @@ class ShardRegistry
             return [];
         }
 
-        $contents = file_get_contents($path);
+        $contents = static::withFileLock($path, LOCK_SH, function () use ($path): string {
+            $contents = file_get_contents($path);
+
+            return is_string($contents) ? $contents : '';
+        });
+
         if (!is_string($contents) || $contents === '') {
             return [];
         }
@@ -73,5 +95,32 @@ class ShardRegistry
         }
 
         return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'redis_sharding_registry.json';
+    }
+
+    /**
+     * @template T
+     *
+     * @param callable():T $callback
+     * @return T
+     */
+    protected static function withFileLock(string $path, int $lockType, callable $callback): mixed
+    {
+        $lockPath = $path . '.lock';
+        $lockHandle = fopen($lockPath, 'c');
+
+        if ($lockHandle === false) {
+            throw new \RuntimeException("Unable to open registry lock file: {$lockPath}");
+        }
+
+        try {
+            if (!flock($lockHandle, $lockType)) {
+                throw new \RuntimeException('Unable to acquire registry file lock.');
+            }
+
+            return $callback();
+        } finally {
+            flock($lockHandle, LOCK_UN);
+            fclose($lockHandle);
+        }
     }
 }

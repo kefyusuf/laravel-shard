@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard;
 
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Collection;
@@ -35,7 +36,8 @@ class ShardManager
     public function __construct(
         protected Repository $config,
         protected DatabaseManager $db,
-        protected ShardLocatorInterface $locator
+        protected ShardLocatorInterface $locator,
+        protected ?Container $container = null
     ) {
         $this->hydrateConnectionsFromRegistry();
         $this->registerStrategies();
@@ -67,7 +69,18 @@ class ShardManager
         $defaultStrategyName = $this->config->get('redis_sharding.default_strategy');
 
         foreach ($strategies as $name => $class) {
-            $strategy = new $class();
+            try {
+                $strategy = $this->container !== null
+                    ? $this->container->make($class)
+                    : new $class();
+            } catch (\Throwable $e) {
+                throw new ShardingException("Failed to initialize sharding strategy '{$class}': {$e->getMessage()}");
+            }
+
+            if (!$strategy instanceof ShardStrategyInterface) {
+                throw new ShardingException("Sharding strategy '{$class}' must implement ShardStrategyInterface");
+            }
+
             $this->strategies[$name] = $strategy;
 
             if ($name === $defaultStrategyName) {
@@ -136,15 +149,24 @@ class ShardManager
     public function createShard(string $name, array $config): bool
     {
         $connections = $this->config->get('redis_sharding.connections', []);
+        $databaseConnections = $this->config->get('database.connections', []);
         
-        if (isset($connections[$name])) {
+        if (isset($connections[$name]) || isset($databaseConnections[$name])) {
             return false;
         }
 
         // Add the connection to the config
         $connections[$name] = $config;
         $this->config->set('redis_sharding.connections', $connections);
+        $this->config->set("database.connections.{$name}", $config);
         ShardRegistry::upsert($name, $config);
+
+        // Reset cached connection state so the new shard can be used immediately.
+        try {
+            $this->db->purge($name);
+        } catch (\Throwable $e) {
+            // Ignore purge failures for brand-new connections.
+        }
 
         // Create metadata record
         ShardMetadata::create([

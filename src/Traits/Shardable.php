@@ -34,7 +34,13 @@ trait Shardable
     public static function bootShardable(): void
     {
         static::creating(function (Model $model) {
-            if (!$model->getConnection()->getName()) {
+            $defaultConnection = config('database.default');
+            $explicitConnection = $model->getConnectionName();
+            $hasExplicitNonDefaultConnection = is_string($explicitConnection)
+                && $explicitConnection !== ''
+                && $explicitConnection !== $defaultConnection;
+
+            if ($model->shardConnection === null && !$hasExplicitNonDefaultConnection) {
                 $model->setShardConnection();
             }
         });

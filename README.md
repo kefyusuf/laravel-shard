@@ -24,8 +24,8 @@ A comprehensive Redis-based database sharding solution for Laravel applications 
 
 ## 📋 Requirements
 
-- PHP 8.0 or higher
-- Laravel 9.0, 10.0, or 12.0
+- PHP 8.2, 8.3, or 8.4
+- Laravel 10.x, 11.x, 12.x, or 13.x
 - Redis server
 - Multiple database connections configured
 

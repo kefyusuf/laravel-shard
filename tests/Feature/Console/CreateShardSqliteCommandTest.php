@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard\Tests\Feature\Console;
 
+use Illuminate\Support\Facades\DB;
 use Laravel\RedisShard\Models\ShardMetadata;
 use Laravel\RedisShard\Tests\TestCase;
 
@@ -33,6 +34,7 @@ class CreateShardSqliteCommandTest extends TestCase
 
         $this->assertFileExists($databasePath);
         $this->assertNotNull(ShardMetadata::where('name', $shardName)->first());
+        $this->assertNotNull(DB::connection($shardName)->getPdo());
     }
 
     public function test_it_accepts_zero_port_value_for_sqlite_driver(): void

@@ -1,0 +1,47 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  php-cs-fixer:
+    runs-on: ubuntu-latest
+    name: PHP-CS-Fixer
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          tools: php-cs-fixer
+          coverage: none
+
+      - name: Run PHP-CS-Fixer
+        run: php-cs-fixer fix --dry-run --diff --verbose
+
+  phpstan:
+    runs-on: ubuntu-latest
+    name: PHPStan Static Analysis
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: dom, curl, libxml, mbstring, zip, redis
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --error-format=github

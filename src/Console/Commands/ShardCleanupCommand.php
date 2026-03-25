@@ -6,6 +6,7 @@ namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
 use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
+use Laravel\RedisShard\Console\Concerns\ScansRedisKeys;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
@@ -13,6 +14,7 @@ use Laravel\RedisShard\Facades\ShardManager;
 class ShardCleanupCommand extends Command
 {
     use HandlesJsonOutput;
+    use ScansRedisKeys;
     use ValidatesOutputFormat;
 
     /**
@@ -62,9 +64,7 @@ class ShardCleanupCommand extends Command
         $scannedKeys = 0;
         $tablesSeen = [];
 
-        $keys = $redis->keys('shard:*');
-
-        foreach ($keys as $key) {
+        foreach ($this->scanKeys($redis, 'shard:*') as $key) {
             $parsed = $this->parseShardRedisKey((string) $key);
             if ($parsed === null) {
                 continue;

@@ -1,0 +1,8 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    excludePaths:
+        - src/Console/Commands/*
+    tmpDir: build/phpstan
+    checkMissingIterableValueType: false
