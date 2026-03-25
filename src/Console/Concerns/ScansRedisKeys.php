@@ -22,12 +22,12 @@ trait ScansRedisKeys
         $seenKeys = [];
 
         foreach ($scanPatterns as $scanPattern) {
-            $cursor = '0';
+            $cursor = 0;
             $matchedAny = false;
 
             do {
                 $keys = [];
-                $nextCursor = '0';
+                $nextCursor = 0;
 
                 try {
                     $response = $redis->scan($cursor, [
@@ -54,11 +54,11 @@ trait ScansRedisKeys
 
                 if (is_array($response) && isset($response[1]) && is_array($response[1])) {
                     // Predis style: [cursor, keys].
-                    $nextCursor = (string) $response[0];
+                    $nextCursor = $response[0];
                     $keys = $response[1];
                 } elseif (is_array($response)) {
                     // PhpRedis style: keys with pass-by-reference cursor updates.
-                    $nextCursor = (string) $cursor;
+                    $nextCursor = $cursor;
                     $keys = $response;
                 }
 
@@ -74,8 +74,8 @@ trait ScansRedisKeys
                     yield $normalized;
                 }
 
-                $cursor = $nextCursor;
-            } while ($cursor !== '0');
+                $cursor = is_numeric($nextCursor) ? (int) $nextCursor : (string) $nextCursor;
+            } while ((string) $cursor !== '0');
 
             if ($matchedAny) {
                 return;
