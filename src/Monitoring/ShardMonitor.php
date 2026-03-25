@@ -290,7 +290,7 @@ class ShardMonitor
     {
         try {
             $startTime = microtime(true);
-            $this->getRedisConnection()->ping();
+            $this->getRedisConnection()->command('ping');
             return round((microtime(true) - $startTime) * 1000, 2);
         } catch (\Exception $e) {
             return -1;
@@ -362,7 +362,7 @@ class ShardMonitor
     protected function checkRedisHealth(): string
     {
         try {
-            $this->getRedisConnection()->ping();
+            $this->getRedisConnection()->command('ping');
             return 'healthy';
         } catch (\Exception $e) {
             return 'unhealthy';

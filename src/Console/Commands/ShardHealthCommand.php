@@ -196,7 +196,7 @@ class ShardHealthCommand extends Command
         try {
             $redisConnection = config('redis_sharding.redis_connection', 'default');
             $redis = app('redis')->connection($redisConnection);
-            $redis->ping();
+            $redis->command('ping');
             if (!$this->jsonOutput) {
                 $this->line('✅ Redis is accessible');
             }
