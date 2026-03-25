@@ -319,8 +319,11 @@ class CrossShardQueryBuilder
      */
     protected function buildShardQuery(string $shard): Builder
     {
+        /** @var Model $model */
         $model = new $this->modelClass();
-        $query = $model->on($shard)->newQuery();
+        $model->setConnection($shard);
+        /** @var Builder $query */
+        $query = $model->newQuery();
 
         // Apply select
         if ($this->selects !== ['*']) {

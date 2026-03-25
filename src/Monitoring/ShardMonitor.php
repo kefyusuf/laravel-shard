@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard\Monitoring;
 
+use Illuminate\Redis\Connections\Connection as RedisConnection;
+use Illuminate\Redis\RedisManager;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
@@ -23,22 +25,30 @@ class ShardMonitor
     protected array $metrics = [];
 
     /**
+     * @var RedisManager
+     */
+    protected RedisManager $redis;
+
+    /**
      * Create a new shard monitor instance.
      *
      * @param ShardLocatorInterface $locator
+     * @param RedisManager $redis
      */
-    public function __construct(ShardLocatorInterface $locator)
+    public function __construct(ShardLocatorInterface $locator, RedisManager $redis)
     {
         $this->locator = $locator;
+        $this->redis = $redis;
     }
 
     /**
      * Get the configured Redis connection instance.
      */
-    protected function getRedisConnection()
+    protected function getRedisConnection(): RedisConnection
     {
         $redisConnection = config('redis_sharding.redis_connection', 'default');
-        return app('redis')->connection($redisConnection);
+
+        return $this->redis->connection($redisConnection);
     }
 
     /**
