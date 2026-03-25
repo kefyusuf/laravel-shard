@@ -711,6 +711,24 @@ $results = User::batchUpdateAcrossShards(
 );
 ```
 
+## 🔁 Consumer Release Automation
+
+This package repo includes an automation workflow that dispatches the consumer repo post-release integration check when a GitHub release is published.
+
+- Workflow: `.github/workflows/dispatch-consumer-post-release.yml`
+- Trigger: `release.published`
+- Target workflow: `post-release-integration.yml` on consumer repo
+
+Required package-repo secret:
+
+- `CONSUMER_WORKFLOW_TOKEN`: GitHub PAT with `repo` + `workflow` scopes for the consumer repository.
+
+Optional workflow_dispatch inputs:
+
+- `package_tag`
+- `consumer_repo`
+- `consumer_ref`
+
 ## 🤝 Contributing
 
 1. Fork the repository
