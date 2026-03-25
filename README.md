@@ -35,6 +35,7 @@ A comprehensive Redis-based database sharding solution for Laravel applications 
 - **[API Reference](docs/API.md)** - Complete API documentation
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate existing applications
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization and benchmarks
+- **[Release Runbook](docs/RELEASE_RUNBOOK.md)** - Package + consumer release checklist
 - **[Example Application](examples/ExampleApplication.md)** - Multi-tenant SaaS example
 - **[Load Testing](examples/LoadTestingExample.php)** - Performance testing tools
 
