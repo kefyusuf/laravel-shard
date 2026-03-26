@@ -107,7 +107,7 @@ abstract class TestCase extends Orchestra
     protected function isRedisAvailable(): bool
     {
         try {
-            $this->app->make('redis')->connection()->ping();
+            $this->app->make('redis')->connection()->command('ping');
             return true;
         } catch (\Exception $e) {
             return false;
