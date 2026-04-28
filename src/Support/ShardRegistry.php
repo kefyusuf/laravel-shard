@@ -17,7 +17,7 @@ class ShardRegistry
         $directory = dirname($path);
 
         if (!is_dir($directory)) {
-            mkdir($directory, 0777, true);
+            mkdir($directory, 0750, true);
         }
 
         $payload = json_encode($connections, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -32,6 +32,8 @@ class ShardRegistry
             if ($bytes === false) {
                 throw new \RuntimeException('Failed to write temporary shard registry file.');
             }
+
+            @chmod($tempPath, 0640);
 
             if (!@rename($tempPath, $path)) {
                 @unlink($path);

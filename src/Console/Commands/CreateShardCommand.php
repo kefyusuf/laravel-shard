@@ -171,7 +171,7 @@ class CreateShardCommand extends Command
             if ($database !== ':memory:' && !file_exists($database)) {
                 $directory = dirname($database);
                 if (!is_dir($directory)) {
-                    mkdir($directory, 0777, true);
+                    mkdir($directory, 0750, true);
                 }
 
                 touch($database);

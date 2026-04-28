@@ -46,3 +46,15 @@ Desktop.ini
 *.tmp
 *.temp
 *.bak
+
+# Test runtime artifacts
+/tests/tmp/*.json
+/tests/tmp/*.json.lock
+/tests/tmp/new-shard-*.sqlite
+/tests/tmp/shard-*.sqlite
+
+# Security audit output
+/security-report/
+
+# Claude Code workspace
+/.claude/
