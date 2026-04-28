@@ -742,7 +742,7 @@ Optional workflow_dispatch inputs:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/laravel-redis-shard.git
+git clone https://github.com/kefyusuf/laravel-redis-shard.git
 
 # Install dependencies
 composer install

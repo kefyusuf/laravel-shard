@@ -25,17 +25,17 @@ class ShardMonitor
     protected array $metrics = [];
 
     /**
-     * @var RedisManager
+     * @var RedisManager|null
      */
-    protected RedisManager $redis;
+    protected ?RedisManager $redis;
 
     /**
      * Create a new shard monitor instance.
      *
      * @param ShardLocatorInterface $locator
-     * @param RedisManager $redis
+     * @param RedisManager|null $redis
      */
-    public function __construct(ShardLocatorInterface $locator, RedisManager $redis)
+    public function __construct(ShardLocatorInterface $locator, ?RedisManager $redis = null)
     {
         $this->locator = $locator;
         $this->redis = $redis;
@@ -43,12 +43,15 @@ class ShardMonitor
 
     /**
      * Get the configured Redis connection instance.
+     *
+     * @return RedisConnection|object
      */
-    protected function getRedisConnection(): RedisConnection
+    protected function getRedisConnection()
     {
         $redisConnection = config('redis_sharding.redis_connection', 'default');
+        $manager = $this->redis ?? app('redis');
 
-        return $this->redis->connection($redisConnection);
+        return $manager->connection($redisConnection);
     }
 
     /**

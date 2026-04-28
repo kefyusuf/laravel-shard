@@ -22,7 +22,7 @@ class ShardMonitorTest extends TestCase
                 $this->usedConnection = $name;
 
                 return new class {
-                    public function ping(): string
+                    public function command(string $name, array $parameters = []): string
                     {
                         return 'PONG';
                     }
