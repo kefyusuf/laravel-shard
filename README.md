@@ -61,6 +61,21 @@ Run the migrations:
 php artisan migrate
 ```
 
+## 🐳 Local Development (Docker)
+
+The repository ships with a Docker stack that bundles PHP (with the `redis` extension via PECL), Composer, and a Redis 7 service so you can run the full test suite without installing anything on the host.
+
+```bash
+make build              # build the PHP image (defaults to PHP 8.3)
+make install            # install composer dependencies inside the container
+make test               # run PHPUnit
+make phpstan            # run PHPStan static analysis
+make cs                 # run php-cs-fixer in dry-run mode
+make matrix             # build and test against PHP 8.2, 8.3, 8.4
+```
+
+Override the PHP version via `PHP_VERSION` (e.g. `make PHP_VERSION=8.4 test`).
+
 ## ⚙️ Configuration
 
 After publishing the config file, configure your shards in `config/redis_sharding.php`:

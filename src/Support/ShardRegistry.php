@@ -17,7 +17,9 @@ class ShardRegistry
         $directory = dirname($path);
 
         if (!is_dir($directory)) {
-            mkdir($directory, 0750, true);
+            mkdir($directory, 0700, true);
+        } else {
+            @chmod($directory, 0700);
         }
 
         $payload = json_encode($connections, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
