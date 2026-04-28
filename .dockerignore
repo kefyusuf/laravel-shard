@@ -1,0 +1,15 @@
+.git
+.github
+vendor
+node_modules
+.phpunit.cache
+.phpunit.result.cache
+coverage
+security-report
+docs/_build
+*.log
+.env
+.env.*
+.idea
+.vscode
+.DS_Store

@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.3}
+    image: laravel-redis-shard/app:${PHP_VERSION:-8.3}
+    working_dir: /app
+    volumes:
+      - .:/app
+      - composer-cache:/root/.composer/cache
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      APP_ENV: testing
+      XDEBUG_MODE: "off"
+    depends_on:
+      redis:
+        condition: service_healthy
+    tty: true
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "${REDIS_PORT_HOST:-6379}:6379"
+
+volumes:
+  composer-cache:
