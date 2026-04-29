@@ -13,7 +13,13 @@ trait HandlesJsonOutput
      */
     protected function emitJson(array $payload): void
     {
-        $this->line(json_encode($payload, JSON_PRETTY_PRINT));
+        $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        if ($json === false) {
+            $json = '{"summary":{"status":"error"},"error":"Failed to encode JSON output."}';
+        }
+
+        $this->output->write($json . PHP_EOL);
     }
 
     /**
