@@ -86,6 +86,29 @@ class ConsistentHashingStrategyTest extends TestCase
         $this->assertGreaterThan(0, $unchanged);
     }
 
+    public function test_it_rebuilds_the_ring_when_available_shards_change_on_the_same_instance(): void
+    {
+        $originalShards = ['shard1', 'shard2'];
+        $newShards = ['shard1', 'shard2', 'shard3'];
+
+        for ($i = 1; $i <= 500; $i++) {
+            $this->strategy->determine('users', 'warmup-' . $i, $originalShards);
+        }
+
+        $seenNewShard = false;
+
+        for ($i = 1; $i <= 2000; $i++) {
+            $assignedShard = $this->strategy->determine('users', 'candidate-' . $i, $newShards);
+
+            if ($assignedShard === 'shard3') {
+                $seenNewShard = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($seenNewShard, 'Newly added shards should receive traffic without recreating the strategy instance.');
+    }
+
     public function test_it_throws_exception_for_empty_shards(): void
     {
         $this->expectException(\InvalidArgumentException::class);

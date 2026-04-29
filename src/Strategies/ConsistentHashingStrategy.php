@@ -23,6 +23,15 @@ class ConsistentHashingStrategy implements ShardStrategyInterface
     protected array $ring = [];
 
     /**
+     * Sorted hash ring keys.
+     *
+     * @var array<int, int>
+     */
+    protected array $ringKeys = [];
+
+    protected ?string $topologySignature = null;
+
+    /**
      * {@inheritdoc}
      */
     public function determine(string $table, mixed $key, array $availableShards): string
@@ -31,26 +40,12 @@ class ConsistentHashingStrategy implements ShardStrategyInterface
             throw new \InvalidArgumentException('No available shards');
         }
 
-        // Build the hash ring if it's empty
-        if (empty($this->ring)) {
-            $this->buildRing($availableShards);
-        }
+        $this->ensureRing($availableShards);
 
-        // Get the hash value for the key
         $hash = $this->hash($table . ':' . $key);
+        $index = $this->findRingIndex($hash);
 
-        // Find the next highest hash in the ring
-        $ringKeys = array_keys($this->ring);
-        sort($ringKeys);
-
-        foreach ($ringKeys as $ringKey) {
-            if ($hash <= $ringKey) {
-                return $this->ring[$ringKey];
-            }
-        }
-
-        // If we get here, we've wrapped around the ring
-        return $this->ring[$ringKeys[0]];
+        return $this->ring[$this->ringKeys[$index]];
     }
 
     /**
@@ -80,6 +75,42 @@ class ConsistentHashingStrategy implements ShardStrategyInterface
         }
 
         ksort($this->ring);
+        $this->ringKeys = array_keys($this->ring);
+    }
+
+    protected function ensureRing(array $availableShards): void
+    {
+        $normalizedShards = array_values($availableShards);
+        sort($normalizedShards);
+
+        $signature = implode('|', $normalizedShards);
+
+        if ($signature === $this->topologySignature && $this->ringKeys !== []) {
+            return;
+        }
+
+        $this->buildRing($normalizedShards);
+        $this->topologySignature = $signature;
+    }
+
+    protected function findRingIndex(int $hash): int
+    {
+        $low = 0;
+        $high = count($this->ringKeys) - 1;
+
+        while ($low <= $high) {
+            $mid = intdiv($low + $high, 2);
+            $ringKey = $this->ringKeys[$mid];
+
+            if ($ringKey < $hash) {
+                $low = $mid + 1;
+                continue;
+            }
+
+            $high = $mid - 1;
+        }
+
+        return $low < count($this->ringKeys) ? $low : 0;
     }
 
     /**
@@ -90,6 +121,6 @@ class ConsistentHashingStrategy implements ShardStrategyInterface
      */
     protected function hash(string $value): int
     {
-        return crc32($value);
+        return (int) sprintf('%u', crc32($value));
     }
 }

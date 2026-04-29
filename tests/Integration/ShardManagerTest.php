@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard\Tests\Integration;
 
+use Illuminate\Support\Facades\Facade;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Exceptions\ShardingException;
 use Laravel\RedisShard\Facades\ShardManager;
@@ -96,7 +97,7 @@ class ShardManagerTest extends TestCase
         $strategy = ShardManager::strategy();
         
         $this->assertInstanceOf(\Laravel\RedisShard\Contracts\ShardStrategyInterface::class, $strategy);
-        $this->assertEquals('modulo', $strategy->getName());
+        $this->assertEquals('consistent_hashing', $strategy->getName());
     }
 
     public function test_it_can_get_specific_strategy(): void
@@ -137,8 +138,12 @@ class ShardManagerTest extends TestCase
         ShardManager::getShardConnection('users', 123);
     }
 
-    public function test_it_distributes_keys_across_shards(): void
+    public function test_it_distributes_keys_evenly_with_modulo_strategy(): void
     {
+        config(['redis_sharding.default_strategy' => 'modulo']);
+        $this->app->forgetInstance('shard.manager');
+        Facade::clearResolvedInstance('shard.manager');
+
         $distribution = [];
         
         // Test with 30 keys

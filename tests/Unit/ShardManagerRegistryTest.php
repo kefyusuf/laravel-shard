@@ -37,6 +37,10 @@ class ShardManagerRegistryTest extends TestCase
 
     protected function tearDown(): void
     {
+        foreach (['runtime_shard', 'dynamic_shard', 'metadata_shard', 'broken_shard'] as $connectionName) {
+            DB::purge($connectionName);
+        }
+
         if (file_exists($this->registryPath)) {
             unlink($this->registryPath);
         }
@@ -136,6 +140,27 @@ class ShardManagerRegistryTest extends TestCase
 
         $this->assertTrue($created);
         $this->assertTrue(DB::table('custom_shard_metadata')->where('name', 'metadata_shard')->exists());
+    }
+
+    public function test_it_rolls_back_runtime_registration_when_metadata_persistence_fails(): void
+    {
+        config()->set('redis_sharding.metadata_table', 'missing_metadata_table');
+
+        $manager = $this->makeManager();
+
+        $this->expectException(\Throwable::class);
+
+        try {
+            $manager->createShard('broken_shard', [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+            ]);
+        } finally {
+            $this->assertArrayNotHasKey('broken_shard', ShardRegistry::readAll());
+            $this->assertNull(config('database.connections.broken_shard'));
+            $this->assertArrayNotHasKey('broken_shard', config('redis_sharding.connections', []));
+        }
     }
 
     private function makeManager(): ShardManager

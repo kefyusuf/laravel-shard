@@ -167,6 +167,8 @@ class RebalanceShardCommand extends Command
         }
 
         if (empty($moves)) {
+            $this->refreshShardMetadata($locator, $table, $availableShards);
+
             return $this->respond(0, [
                 'summary' => [
                     'table' => $table,
@@ -247,16 +249,7 @@ class RebalanceShardCommand extends Command
             $this->newLine(2);
         }
 
-        // Update metadata
-        foreach ($availableShards as $shard) {
-            $metadata = ShardMetadata::where('connection', $shard)->first();
-            
-            if ($metadata) {
-                $keys = $locator->getKeysForShard($table, $shard);
-                $metadata->updateRecordCount(count($keys));
-                $metadata->markRebalanced();
-            }
-        }
+        $this->refreshShardMetadata($locator, $table, $availableShards);
 
         $exitCode = $errorCount > 0 ? 1 : 0;
 
@@ -273,6 +266,24 @@ class RebalanceShardCommand extends Command
                 'failed_moves' => $errorCount,
             ],
         ]);
+    }
+
+    /**
+     * @param array<string> $availableShards
+     */
+    protected function refreshShardMetadata(ShardLocatorInterface $locator, string $table, array $availableShards): void
+    {
+        foreach ($availableShards as $shard) {
+            $metadata = ShardMetadata::where('connection', $shard)->first();
+
+            if ($metadata === null) {
+                continue;
+            }
+
+            $keys = $locator->getKeysForShard($table, $shard);
+            $metadata->updateRecordCount(count($keys));
+            $metadata->markRebalanced();
+        }
     }
 
     /**

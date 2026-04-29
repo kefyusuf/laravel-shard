@@ -150,6 +150,9 @@ class ShardManager
     {
         $connections = $this->config->get('redis_sharding.connections', []);
         $databaseConnections = $this->config->get('database.connections', []);
+        $originalConnections = $connections;
+        $originalDatabaseConnections = $databaseConnections;
+        $persistedRegistry = ShardRegistry::readAll();
         
         if (isset($connections[$name]) || isset($databaseConnections[$name])) {
             return false;
@@ -168,13 +171,30 @@ class ShardManager
             // Ignore purge failures for brand-new connections.
         }
 
-        // Create metadata record
-        ShardMetadata::query()->create([
-            'name' => $name,
-            'connection' => $name,
-            'created_at' => now(),
-            'status' => 'active',
-        ]);
+        try {
+            ShardMetadata::query()->create([
+                'name' => $name,
+                'connection' => $name,
+                'created_at' => now(),
+                'status' => 'active',
+            ]);
+        } catch (\Throwable $e) {
+            $this->config->set('redis_sharding.connections', $originalConnections);
+            $this->config->set('database.connections', $originalDatabaseConnections);
+            ShardRegistry::writeAll($persistedRegistry);
+
+            try {
+                $this->db->purge($name);
+            } catch (\Throwable) {
+                // Ignore cleanup failures while unwinding shard creation.
+            }
+
+            throw new ShardingException(
+                "Failed to create shard '{$name}': {$e->getMessage()}",
+                0,
+                $e
+            );
+        }
 
         return true;
     }

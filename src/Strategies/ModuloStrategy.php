@@ -17,6 +17,8 @@ class ModuloStrategy implements ShardStrategyInterface
             throw new \InvalidArgumentException('No available shards');
         }
 
+        sort($availableShards);
+
         // Convert key to numeric value for modulo operation
         $numericKey = $this->getNumericValue($key);
         
@@ -49,10 +51,10 @@ class ModuloStrategy implements ShardStrategyInterface
 
         if (is_string($key)) {
             // Use crc32 hash for string keys
-            return crc32($key);
+            return (int) sprintf('%u', crc32($key));
         }
 
         // For other types, convert to string first
-        return crc32((string) $key);
+        return (int) sprintf('%u', crc32((string) $key));
     }
 }
