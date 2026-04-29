@@ -96,7 +96,7 @@ class ShardableBuilder extends Builder
             ];
         }
 
-        $wheres = $this->getQuery()->wheres ?? [];
+        $wheres = $this->getQuery()->wheres;
         $shardKeyName = $this->getShardKeyName();
         $table = $this->model->getTable();
 
@@ -473,12 +473,27 @@ class ShardableBuilder extends Builder
 
         $plan = $this->requireRoutingPlan('paginate records');
 
-        if ($plan['mode'] === 'single') {
-            return $this->runOnShard($plan['connection'], fn () => parent::paginate($perPage, $columns, $pageName, $page, $total));
-        }
-
         $perPage = $perPage ?: $this->model->getPerPage();
         $page = $page ?: LengthAwarePaginator::resolveCurrentPage($pageName);
+
+        if ($plan['mode'] === 'single') {
+            $totalRecords = $this->cloneForShard($plan['connection'])->count();
+            $items = $totalRecords > 0
+                ? $this->cloneForShard($plan['connection'])->forPage($page, $perPage)->get($columns)
+                : $this->model->newCollection();
+
+            return new LengthAwarePaginator(
+                $items,
+                $totalRecords,
+                $perPage,
+                $page,
+                [
+                    'path' => LengthAwarePaginator::resolveCurrentPath(),
+                    'pageName' => $pageName,
+                ]
+            );
+        }
+
         $results = $this->get($columns);
         $items = $results->forPage($page, $perPage)->values();
 

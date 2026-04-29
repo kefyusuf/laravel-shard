@@ -30,7 +30,7 @@ jobs:
         run: PHP_VERSION=${{ matrix.php }} docker compose run --rm app composer update --prefer-dist --with-all-dependencies --no-interaction --no-progress
 
       - name: Run PHPStan
-        run: PHP_VERSION=${{ matrix.php }} docker compose run --rm app vendor/bin/phpstan analyse --no-progress --error-format=github
+        run: PHP_VERSION=${{ matrix.php }} docker compose run --rm app vendor/bin/phpstan analyse --no-progress --memory-limit=1G --error-format=github
 
       - name: Run tests
         run: PHP_VERSION=${{ matrix.php }} docker compose run --rm app vendor/bin/phpunit --colors=never

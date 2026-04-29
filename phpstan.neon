@@ -5,3 +5,5 @@ parameters:
     excludePaths:
         - src/Console/Commands/*
     tmpDir: build/phpstan
+    parallel:
+        maximumNumberOfProcesses: 1

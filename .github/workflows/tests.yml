@@ -93,6 +93,9 @@ jobs:
       - name: Build app container
         run: PHP_VERSION=8.4 docker compose build app
 
+      - name: Install dependencies in Docker
+        run: PHP_VERSION=8.4 docker compose run --rm app composer install --prefer-dist --no-interaction --no-progress
+
       - name: Execute full test suite in Docker
         run: PHP_VERSION=8.4 docker compose run --rm app vendor/bin/phpunit --colors=never
 
@@ -106,6 +109,9 @@ jobs:
 
       - name: Build app container
         run: PHP_VERSION=8.4 docker compose build app
+
+      - name: Install dependencies in Docker
+        run: PHP_VERSION=8.4 docker compose run --rm app composer install --prefer-dist --no-interaction --no-progress
 
       - name: Validate outage behavior
         run: |
