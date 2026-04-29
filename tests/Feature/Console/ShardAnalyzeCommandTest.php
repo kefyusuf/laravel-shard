@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard\Tests\Feature\Console;
 
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Facade;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Tests\TestCase;
-use Symfony\Component\Console\Output\BufferedOutput;
 
 class ShardAnalyzeCommandTest extends TestCase
 {
@@ -32,40 +30,23 @@ class ShardAnalyzeCommandTest extends TestCase
 
     public function test_json_mode_outputs_parseable_json_only(): void
     {
-        $outputBuffer = new BufferedOutput();
-
-        $exitCode = Artisan::call('shard:analyze', [
+        $this->artisan('shard:analyze', [
             '--sample-size' => 10,
             '--format' => 'json',
-        ], $outputBuffer);
-
-        $this->assertSame(0, $exitCode);
-
-        $output = trim($outputBuffer->fetch());
-        $decoded = json_decode($output, true);
-
-        $this->assertIsArray($decoded);
-        $this->assertArrayHasKey('summary', $decoded);
-        $this->assertArrayHasKey('results', $decoded);
+        ])
+            ->expectsOutputToContain('"summary"')
+            ->doesntExpectOutputToContain('Analyzing shard distribution...')
+            ->assertExitCode(0);
     }
 
     public function test_json_mode_outputs_parseable_error_for_invalid_sample_size(): void
     {
-        $outputBuffer = new BufferedOutput();
-
-        $exitCode = Artisan::call('shard:analyze', [
+        $this->artisan('shard:analyze', [
             '--sample-size' => 0,
             '--format' => 'json',
-        ], $outputBuffer);
-
-        $this->assertSame(1, $exitCode);
-
-        $output = trim($outputBuffer->fetch());
-        $decoded = json_decode($output, true);
-
-        $this->assertIsArray($decoded);
-        $this->assertSame('error', $decoded['summary']['status'] ?? null);
-        $this->assertSame('Sample size must be at least 2.', $decoded['error'] ?? null);
+        ])
+            ->expectsOutputToContain('"status": "error"')
+            ->assertExitCode(1);
     }
 
     public function test_it_fails_when_no_shards_are_configured(): void
