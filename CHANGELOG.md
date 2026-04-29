@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+### Unreleased Added
+
+- Docker-focused validation targets: `test-focused`, `test-docker`, and `test-docker-focused`.
+- A GitHub Actions Docker Compose validation job that runs the full PHPUnit suite against the package's Redis-backed container environment.
+- Expanded API, README, and Quick Start guidance for deterministic query routing and locator fallback-store operations.
+
+### Unreleased Changed
+
 - Updated support matrix to Laravel 10.x-13.x and PHP 8.2+.
 - Updated CI matrix to test Laravel 10/11/12/13 against PHP 8.2/8.3/8.4.
 - Made shard strategy resolution container-aware for dependency-injected custom strategies.
+- Changed the default sharding strategy to `consistent_hashing` and aligned integration coverage with that default.
 
-### Fixed
+### Unreleased Fixed
+
 - `Shardable` now resolves shard connection during `creating` even when default connection exists.
 - `ShardableBuilder` now falls back to deterministic strategy routing when Redis lookup misses.
 - `ShardManager::createShard()` now registers new shards in both package and runtime DB connection config.
@@ -20,10 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `shard:analyze --format=json` now emits parseable JSON-only output.
 - `shard:cleanup` and `shard:health` now scan `shard:*` keys via SCAN iteration.
 - Registry writes are now lock-protected and atomic to prevent race-condition corruption.
+- `ShardableBuilder` now covers deterministic helper paths such as `get`, `count`, `exists`, `pluck`, `paginate`, `chunk`, `cursor`, `lazy`, `touch`, `increment`, `decrement`, and `upsert`, and fails fast when shard routing is ambiguous.
+- Shard locator mappings no longer expire, and the locator now supports local-cache reuse, circuit breaking, and an optional persistent fallback store for Redis outages.
+- Consistent hashing now rebuilds its ring when shard topology changes.
+- Rebalance metadata updates now refresh `record_count` and `last_rebalanced_at` even when no physical moves are required.
 
 ## [2.0.0] - 2024-01-15
 
-### Added
+### 2.0.0 Added
+
 - Comprehensive testing infrastructure (51 tests across unit, integration, and feature)
 - Enhanced monitoring and observability features
 - `shard:status` command for viewing shard distribution metrics
@@ -38,20 +52,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD workflows
 - PHP-CS-Fixer and PHPStan integration
 
-### Changed
+### 2.0.0 Changed
+
 - Improved shard creation command with better validation
 - Enhanced error handling in production vs development environments
 - Optimized Redis operations for better performance
 - Updated documentation with comprehensive guides
 
-### Fixed
+### 2.0.0 Fixed
+
 - Configuration validation during service provider boot
 - Redis connection handling in tests
 - Edge cases in sharding strategies
 
 ## [1.0.0] - 2023-12-01
 
-### Added
+### 1.0.0 Added
+
 - Initial release
 - Three sharding strategies (Modulo, Consistent Hashing, Range-Based)
 - `Shardable` trait for automatic shard management

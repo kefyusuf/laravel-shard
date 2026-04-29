@@ -7,14 +7,14 @@
 [![License](https://poser.pugx.org/yusuf.kef/laravel-redis-shard/license)](https://packagist.org/packages/yusuf.kef/laravel-redis-shard)
 [![PHP Version Require](https://poser.pugx.org/yusuf.kef/laravel-redis-shard/require/php)](https://packagist.org/packages/yusuf.kef/laravel-redis-shard)
 
-A comprehensive Redis-based database sharding solution for Laravel applications that provides automatic data distribution, intelligent routing, and seamless scaling capabilities.
+A Redis-backed shard locator for Laravel applications that provides deterministic shard routing for shard-key-aware Eloquent workflows.
 
 ## ✨ Features
 
-- **Automatic Sharding**: Distribute data across multiple database shards automatically
-- **Redis-Based Lookup**: Fast shard location using Redis as a lookup table
+- **Deterministic Shard Routing**: Route shard-key-aware reads and writes to the correct shard
+- **Redis-Based Lookup**: Persistent key-to-shard mappings stored in Redis
 - **Multiple Strategies**: Support for Modulo, Consistent Hashing, and Range-based sharding
-- **Intelligent Routing**: Automatic shard routing with middleware support
+- **Request Routing**: Route middleware and shard-aware builders for single-shard operations
 - **Model Integration**: Easy integration using the `Shardable` trait
 - **Performance Monitoring**: Built-in monitoring and health checks
 - **Auto-Provisioning**: Automatic shard creation when thresholds are reached
@@ -44,7 +44,7 @@ A comprehensive Redis-based database sharding solution for Laravel applications 
 Install the package via Composer:
 
 ```bash
-composer require yusuf.kef/laravel-redis-shard
+composer require yusuf.kef/laravel-shard
 ```
 
 The package will automatically register its service provider thanks to Laravel's package auto-discovery.
@@ -113,6 +113,54 @@ return [
 ];
 ```
 
+## Important Constraints
+
+- Shard-aware query routing is deterministic only when the builder can resolve a single shard from the shard key, currently via explicit shard connection binding, `find`, shard-key `=` predicates, and shard-key `whereIn(...)` predicates.
+- Queries that cannot be routed safely now fail fast instead of silently falling back to the default connection.
+- Authoritative key-to-shard mappings are persisted in Redis and no longer expire automatically.
+- Auto-increment primary keys require an explicit shard key value, request shard binding, or explicit connection before insert.
+- `modulo` is suitable only for fixed shard topologies. Adding or removing shards with `modulo` requires planned data migration.
+
+## Supported Query Patterns
+
+| Pattern | Behavior |
+| --- | --- |
+| `Model::find($id)`, `findMany([...])` | Routes by primary key when the shard key is the primary key |
+| `where($shardKey, '=', $value)` | Routes to one shard |
+| `whereIn($shardKey, [...])` | Routes to one or more shards and merges results when needed |
+| `get`, `first`, `count`, `exists`, `value`, `pluck` | Shard-aware when the query is deterministic |
+| `paginate`, `simplePaginate`, `chunk` | Shard-aware when the query is deterministic |
+| `update`, `delete`, `touch`, `increment`, `decrement` | Shard-aware when the query is deterministic |
+| `upsert` | Shard-aware when every row contains a resolvable shard key value |
+
+## Fail-Fast Query Patterns
+
+- Queries without an explicit shard connection or shard-key predicate
+- Shard-key predicates using unsupported operators such as `whereBetween(...)`
+- Queries that mix shard-key routing with `orWhere(...)`
+- `upsert(...)` payloads that omit the shard key or contain unresolvable shard-key values
+
+These paths now throw `ShardingException` instead of silently using the default connection.
+
+## Locator Fallback Store
+
+If you want shard lookups to survive a Redis outage beyond the current PHP process, configure `redis_sharding.locator.fallback_store` with a Laravel cache store that is independent from Redis.
+
+- Recommended: `database` or `file`
+- Acceptable: any shared non-Redis cache backend with separate failure characteristics
+- Not useful for outage isolation: a cache store backed by the same Redis cluster
+- Test-only: `array`, because it is process-local
+
+Example:
+
+```php
+'locator' => [
+    'local_cache_limit' => 10000,
+    'circuit_breaker_seconds' => 5,
+    'fallback_store' => env('REDIS_SHARD_LOCATOR_FALLBACK_STORE', 'database'),
+],
+```
+
 ## 🎯 Quick Start
 
 ### 1. Create Your First Shard
@@ -144,18 +192,21 @@ class User extends Model
 }
 ```
 
-### 3. Use Automatic Sharding
+### 3. Use Shard-Aware Queries
 
 ```php
-// Create a user - automatically assigned to a shard
+// Create a user - routed using the shard key value
 $user = User::create([
     'name' => 'John Doe',
     'email' => 'john@example.com',
     'password' => bcrypt('password')
 ]);
 
-// Find a user - automatically queries the correct shard
+// Single-shard lookup by shard key
 $user = User::where('email', 'john@example.com')->first();
+
+// Single-shard bulk lookup by shard key
+$users = User::whereIn('email', ['john@example.com', 'jane@example.com'])->get();
 
 // Get shard information
 $shardConnection = ShardManager::getShardConnection('users', 'john@example.com');
@@ -180,16 +231,18 @@ Route::middleware(['shard:users,email'])->group(function () {
 The package supports three different sharding strategies:
 
 ### 1. Modulo Strategy
-Simple modulo-based distribution. Best for evenly distributed numeric keys.
+
+Simple modulo-based distribution. Use only when the shard list is effectively static.
 
 ```php
 'default_strategy' => 'modulo',
 ```
 
 **Pros**: Simple, predictable distribution
-**Cons**: Adding/removing shards requires data migration
+**Cons**: Adding/removing shards remaps most keys and requires explicit data migration
 
 ### 2. Consistent Hashing Strategy (Recommended)
+
 Uses consistent hashing algorithm for better distribution when shards are added/removed.
 
 ```php
@@ -200,6 +253,7 @@ Uses consistent hashing algorithm for better distribution when shards are added/
 **Cons**: Slightly more complex
 
 ### 3. Range-Based Strategy
+
 Distributes data based on key ranges.
 
 ```php
@@ -543,16 +597,19 @@ vendor/bin/phpunit --coverage-html coverage
 ### Test Categories
 
 **Unit Tests:**
+
 - `ModuloStrategyTest` - Tests modulo distribution algorithm
 - `ConsistentHashingStrategyTest` - Tests consistent hashing with shard changes
 - `RangeBasedStrategyTest` - Tests range-based distribution
 
 **Integration Tests:**
+
 - `ShardManagerTest` - Tests shard management functionality
 - `ShardLocatorTest` - Tests Redis-based shard location
 - Cross-component interaction testing
 
 **Feature Tests:**
+
 - `CreateShardCommandTest` - Tests shard creation command
 - End-to-end workflow testing
 - Command validation and error handling
@@ -668,6 +725,7 @@ $userFeed = Post::crossShard()
 ## 📋 Best Practices
 
 ### 1. Choosing the Right Shard Key
+
 ```php
 // ✅ Good: High cardinality, evenly distributed
 protected ?string $shardKey = 'user_email';
@@ -679,6 +737,7 @@ protected ?string $shardKey = 'country'; // Uneven distribution
 ```
 
 ### 2. Monitoring and Maintenance
+
 ```php
 // Regular health checks
 Schedule::command('shard:health --fix')->hourly();
@@ -691,6 +750,7 @@ $metrics = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class)->collectMetri
 ```
 
 ### 3. Handling Relationships
+
 ```php
 // Keep related data on the same shard
 class User extends Model
@@ -714,6 +774,7 @@ public function orders()
 ```
 
 ### 4. Performance Optimization
+
 ```php
 // Use caching for frequently accessed data
 $user = Cache::remember("user:{$email}", 3600, function () use ($email) {
@@ -773,7 +834,8 @@ vendor/bin/php-cs-fixer fix --dry-run
 
 ### Common Issues
 
-**1. Configuration Validation Errors**
+### 1. Configuration Validation Errors
+
 ```bash
 # Check configuration
 php artisan shard:health
@@ -791,7 +853,8 @@ php artisan shard:health
 ],
 ```
 
-**2. Redis Connection Issues**
+### 2. Redis Connection Issues
+
 ```bash
 # Test Redis connectivity
 redis-cli ping
@@ -801,7 +864,8 @@ php artisan tinker
 >>> app('redis')->ping()
 ```
 
-**3. Shard Distribution Problems**
+### 3. Shard Distribution Problems
+
 ```bash
 # Analyze current distribution
 php artisan shard:analyze users
@@ -810,7 +874,8 @@ php artisan shard:analyze users
 php artisan shard:rebalance users --strategy=consistent_hashing
 ```
 
-**4. Performance Issues**
+### 4. Performance Issues
+
 ```bash
 # Check shard performance
 php artisan shard:health
@@ -866,6 +931,7 @@ $metrics = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class)->collectMetri
 ## 🆕 Changelog
 
 ### v2.0.0 (Latest)
+
 - ✅ Added comprehensive testing infrastructure (51 tests)
 - ✅ Enhanced monitoring and observability features
 - ✅ Improved developer experience with new Artisan commands
@@ -875,6 +941,7 @@ $metrics = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class)->collectMetri
 - ✅ Real-world examples and best practices documentation
 
 ### v1.0.0
+
 - ✅ Basic sharding functionality
 - ✅ Multiple sharding strategies
 - ✅ Redis-based shard location
@@ -892,6 +959,6 @@ This package is open-sourced software licensed under the [MIT license](LICENSE).
 
 ---
 
-**Made with ❤️ for the Laravel community**
+Made for the Laravel community.
 
 For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/your-username/laravel-redis-shard).

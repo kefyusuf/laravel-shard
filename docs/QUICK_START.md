@@ -5,7 +5,7 @@ Get up and running with Laravel Redis Sharding in 5 minutes!
 ## 1. Install (1 minute)
 
 ```bash
-composer require yusuf.kef/laravel-redis-shard
+composer require yusuf.kef/laravel-shard
 ```
 
 The package auto-registers via Laravel's package discovery.
@@ -79,19 +79,34 @@ class User extends Model
 }
 ```
 
-## 🎉 You're Done!
+## 🎉 You're Done
+
+## Before You Ship
+
+- Use a stable shard key that is known before insert. Auto-increment primary keys need an explicit shard binding or separate shard key column.
+- Prefer `consistent_hashing` unless your shard count is fixed for the lifetime of the data.
+- Keep single-shard queries anchored on the shard key with `=` or `whereIn(...)`, or bind an explicit shard connection through middleware.
+- Queries that cannot be routed deterministically now throw instead of silently using the default connection.
+- Supported deterministic builder helpers include `get`, `first`, `count`, `exists`, `value`, `pluck`, `paginate`, `simplePaginate`, `chunk`, `update`, `delete`, `touch`, `increment`, `decrement`, and `upsert`.
+- If you configure `redis_sharding.locator.fallback_store`, pick a non-Redis backend such as `database` or `file`; otherwise a Redis outage still takes the fallback with it.
+
+Suggested `.env` setting for production:
+
+```env
+REDIS_SHARD_LOCATOR_FALLBACK_STORE=database
+```
 
 ### Test It Out
 
 ```php
-// Create a user - automatically sharded
+// Create a user - routed using the shard key
 $user = User::create([
     'name' => 'John Doe',
     'email' => 'john@example.com',
     'password' => bcrypt('password'),
 ]);
 
-// Find user - automatically queries correct shard
+// Find user on a single shard
 $found = User::where('email', 'john@example.com')->first();
 
 // See which shard it's on
@@ -108,12 +123,14 @@ php artisan shard:status
 ## Common Patterns
 
 ### Single Shard Query
+
 ```php
-// Fast - all on one shard
+// Fast - deterministic single-shard lookup
 $user = User::where('email', 'john@example.com')->first();
 ```
 
 ### Cross-Shard Query
+
 ```php
 use Laravel\RedisShard\Traits\CrossShardQueryable;
 
@@ -130,6 +147,7 @@ $total = User::crossShard()->count();
 ```
 
 ### Route Middleware
+
 ```php
 // Automatic shard routing in routes
 Route::get('/users/{email}', 'UserController@show')

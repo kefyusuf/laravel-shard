@@ -24,6 +24,7 @@ Before migrating, ensure you have:
 - ✅ Multiple database servers configured (or multiple databases on one server)
 - ✅ Full database backup created
 - ✅ Staging environment for testing
+- ✅ A shard key that is available before insert for every sharded model
 
 ---
 
@@ -148,12 +149,14 @@ class User extends Model
 {
     use Shardable;
 
-    // Specify shard key (defaults to primary key)
+    // Specify a shard key that exists before insert.
     protected ?string $shardKey = 'email';
     
     protected $fillable = ['name', 'email', 'password'];
 }
 ```
+
+If your model still uses an auto-increment primary key as the shard key, the package now throws before insert instead of silently writing to the default connection.
 
 ---
 

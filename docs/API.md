@@ -18,7 +18,7 @@ Complete API reference for Laravel Redis Sharding package.
 
 Main class for managing database shards.
 
-### Methods
+### ShardManager Methods
 
 #### `getShardConnection(string $table, mixed $key): string`
 
@@ -32,6 +32,7 @@ $shard = ShardManager::getShardConnection('users', 123);
 ```
 
 **Parameters:**
+
 - `$table` (string) - Table name
 - `$key` (mixed) - Shard key value
 
@@ -69,6 +70,7 @@ $created = ShardManager::createShard('shard4', [
 ```
 
 **Parameters:**
+
 - `$name` (string) - Shard connection name
 - `$config` (array) - Database configuration
 
@@ -89,6 +91,7 @@ $consistentHash = ShardManager::strategy('consistent_hashing');
 ```
 
 **Parameters:**
+
 - `$name` (string|null) - Strategy name (optional)
 
 **Returns:** `ShardStrategyInterface` instance
@@ -114,7 +117,15 @@ $allStrategies = ShardManager::strategies();
 
 Manages Redis-based shard location tracking.
 
-### Methods
+### Resilience Model
+
+- Redis remains the authoritative shard mapping store.
+- The locator keeps an in-process cache for hot mappings.
+- An optional `fallback_store` can persist mappings in a secondary Laravel cache store.
+- During Redis outages the locator reads from local cache first, then the configured fallback store.
+- If no cached or fallback mapping exists, the locator throws `ShardingException` instead of silently guessing.
+
+### ShardLocator Methods
 
 #### `register(string $table, mixed $key, string $shard): bool`
 
@@ -128,6 +139,7 @@ $locator->register('users', 123, 'shard1');
 ```
 
 **Parameters:**
+
 - `$table` (string) - Table name
 - `$key` (mixed) - Record key
 - `$shard` (string) - Shard connection name
@@ -146,6 +158,7 @@ $shard = $locator->locate('users', 123);
 ```
 
 **Parameters:**
+
 - `$table` (string) - Table name
 - `$key` (mixed) - Record key
 
@@ -162,6 +175,7 @@ $forgotten = $locator->forget('users', 123);
 ```
 
 **Parameters:**
+
 - `$table` (string) - Table name
 - `$key` (mixed) - Record key
 
@@ -179,6 +193,7 @@ $keys = $locator->getKeysForShard('users', 'shard1');
 ```
 
 **Parameters:**
+
 - `$table` (string) - Table name
 - `$shard` (string) - Shard connection name
 
@@ -190,7 +205,26 @@ $keys = $locator->getKeysForShard('users', 'shard1');
 
 Trait for Eloquent models to enable automatic sharding.
 
-### Usage
+### Query Routing Matrix
+
+The package only routes queries implicitly when it can determine the destination shard safely.
+
+| Query shape | Status | Notes |
+| --- | --- | --- |
+| `find($id)`, `findMany([...])` | Supported | Routes by primary key when the shard key is also the primary key |
+| `where($shardKey, '=', $value)` | Supported | Deterministic single-shard routing |
+| `whereIn($shardKey, [...])` | Supported | Routes per shard and merges results when needed |
+| `get`, `first`, `firstOrFail`, `sole`, `soleValue`, `value`, `valueOrFail` | Supported | Only when the query is deterministic |
+| `cursor`, `lazy`, `lazyById`, `chunk`, `chunkById`, `eachById` | Supported | Only when the query is deterministic |
+| `paginate`, `simplePaginate`, `cursorPaginate` | Supported | Only when the query is deterministic |
+| `update`, `delete`, `touch`, `increment`, `decrement`, `incrementEach`, `decrementEach` | Supported | Only when the query is deterministic |
+| `upsert` | Supported | Every row must include a resolvable shard key |
+| `orWhere(...)` mixed into shard routing | Fail-fast | Throws `ShardingException` |
+| Unsupported shard-key operators such as `whereBetween(...)` | Fail-fast | Throws `ShardingException` |
+| Query without shard-key predicate or explicit shard connection | Fail-fast | Throws `ShardingException` |
+| Cross-shard aggregation through the normal Eloquent builder | Unsupported | Use `CrossShardQueryable` instead |
+
+### Shardable Usage
 
 ```php
 use Laravel\RedisShard\Traits\Shardable;
@@ -214,7 +248,7 @@ protected ?string $shardKey = 'email'; // Use email  column
 protected ?string $shardKey = null;    // Use primary key (default)
 ```
 
-### Methods
+### Shardable Methods
 
 #### `getShardInfo(): array`
 
@@ -238,7 +272,7 @@ $info = $user->getShardInfo();
 
 Trait for executing queries across all shards.
 
-### Usage
+### CrossShardQueryable Usage
 
 ```php
 use Laravel\RedisShard\Traits\Shardable;
@@ -250,7 +284,7 @@ class User extends Model
 }
 ```
 
-### Methods
+### CrossShardQueryable Methods
 
 #### `crossShard(): CrossShardQueryBuilder`
 
@@ -277,6 +311,7 @@ $users = User::searchAcrossShards('email', 'john@example.com');
 ```
 
 **Parameters:**
+
 - `$column` (string) - Column name
 - `$value` (mixed) - Value to search for
 
@@ -293,6 +328,7 @@ $user = User::findAcrossShards('email', 'john@example.com');
 ```
 
 **Parameters:**
+
 - `$column` (string) - Column name
 - `$value` (mixed) - Value to search for
 
@@ -316,6 +352,7 @@ $stats = User::aggregateAcrossShards('age');
 ```
 
 **Parameters:**
+
 - `$column` (string) - Column to aggregate
 
 **Returns:** Array with statistics
@@ -334,6 +371,7 @@ $updated = User::batchUpdateAcrossShards(
 ```
 
 **Parameters:**
+
 - `$conditions` (array) - WHERE conditions
 - `$updates` (array) - Values to update
 
@@ -357,6 +395,7 @@ $paginated = User::paginateAcrossShards(1, 20);
 ```
 
 **Parameters:**
+
 - `$page` (int) - Page number
 - `$perPage` (int) - Items per page
 
@@ -433,6 +472,7 @@ php artisan shard:create shard4 \
 ```
 
 **Options:**
+
 - `--driver` - Database driver (default: mysql)
 - `--host` - Host address
 - `--port` - Port number
@@ -540,11 +580,26 @@ return [
     
     // Cache TTL in seconds
     'cache_ttl' => 3600,
+
+    // Locator resilience settings
+    'locator' => [
+        'local_cache_limit' => 10000,
+        'circuit_breaker_seconds' => 5,
+        'fallback_store' => env('REDIS_SHARD_LOCATOR_FALLBACK_STORE'),
+    ],
     
     // Metadata table name
     'metadata_table' => 'shard_metadata',
 ];
 ```
+
+### Fallback Store Guidance
+
+- Use a fallback store only if it is operationally independent from Redis.
+- Good choices: `database`, `file`, or a shared non-Redis cache backend with separate failure characteristics.
+- Poor choice: another Laravel cache store backed by the same Redis deployment, because it fails together with Redis.
+- `array` is useful in tests but not as a production fallback because it is process-local.
+- The fallback store is a resilience layer, not a new source of truth. Redis remains authoritative when healthy.
 
 ---
 

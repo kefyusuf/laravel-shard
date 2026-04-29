@@ -81,3 +81,34 @@ jobs:
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+
+  docker-compose-validation:
+    runs-on: ubuntu-latest
+    name: Docker Compose Validation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build app container
+        run: PHP_VERSION=8.4 docker compose build app
+
+      - name: Execute full test suite in Docker
+        run: PHP_VERSION=8.4 docker compose run --rm app vendor/bin/phpunit --colors=never
+
+  docker-compose-redis-outage:
+    runs-on: ubuntu-latest
+    name: Docker Compose Redis Outage Validation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build app container
+        run: PHP_VERSION=8.4 docker compose build app
+
+      - name: Validate outage behavior
+        run: |
+          PHP_VERSION=8.4 docker compose up -d redis
+          PHP_VERSION=8.4 docker compose stop redis
+          PHP_VERSION=8.4 docker compose run --rm --no-deps app vendor/bin/phpunit tests/Integration/ShardManagerTest.php tests/Integration/ShardLocatorTest.php tests/Unit/ShardLocatorResilienceTest.php --colors=never

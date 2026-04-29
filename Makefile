@@ -1,4 +1,4 @@
-.PHONY: build install update test test-filter phpstan cs cs-fix shell down clean matrix
+.PHONY: build install update test test-filter test-focused test-docker test-docker-focused phpstan cs cs-fix shell down clean matrix
 
 PHP_VERSION ?= 8.3
 DC = PHP_VERSION=$(PHP_VERSION) docker compose
@@ -16,8 +16,19 @@ update:
 test:
 	$(RUN) vendor/bin/phpunit --colors=never
 
+test-focused:
+	$(RUN) vendor/bin/phpunit tests/Unit/ShardLocatorResilienceTest.php tests/Integration/ShardLocatorTest.php tests/Feature/ShardableRoutingTest.php tests/Unit/Strategies/ConsistentHashingStrategyTest.php tests/Unit/ShardManagerRegistryTest.php --colors=never
+
 test-filter:
 	$(RUN) vendor/bin/phpunit --colors=never --filter "$(F)"
+
+test-docker:
+	$(DC) up -d redis
+	$(RUN) vendor/bin/phpunit --colors=never
+
+test-docker-focused:
+	$(DC) up -d redis
+	$(RUN) vendor/bin/phpunit tests/Unit/ShardLocatorResilienceTest.php tests/Integration/ShardLocatorTest.php tests/Feature/ShardableRoutingTest.php tests/Unit/Strategies/ConsistentHashingStrategyTest.php tests/Unit/ShardManagerRegistryTest.php --colors=never
 
 phpstan:
 	$(RUN) vendor/bin/phpstan analyse --no-progress
