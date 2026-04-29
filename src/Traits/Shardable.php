@@ -7,8 +7,21 @@ namespace Laravel\RedisShard\Traits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\RedisShard\Database\ShardableBuilder;
+use Laravel\RedisShard\Exceptions\ShardingException;
 use Laravel\RedisShard\Facades\ShardManager;
 
+/**
+ * @mixin Model
+ * @property bool $exists
+ * @method static void creating(callable $callback)
+ * @method static void saved(callable $callback)
+ * @method static void deleted(callable $callback)
+ * @method string getKeyName()
+ * @method mixed getAttribute(string $key)
+ * @method string getTable()
+ * @method void setConnection(string $name)
+ * @method string|null getConnectionName()
+ */
 trait Shardable
 {
     use CrossShardQueryable;
@@ -109,6 +122,20 @@ trait Shardable
         }
 
         $this->setShardConnection();
+
+        $resolvedConnection = $this->getConnectionName();
+        $resolvedToShard = is_string($resolvedConnection)
+            && $resolvedConnection !== ''
+            && $resolvedConnection !== $defaultConnection;
+
+        if ($resolvedToShard) {
+            return;
+        }
+
+        throw new ShardingException(sprintf(
+            'Cannot resolve shard connection for new %s record before insert. Configure a shard key value, set an explicit shard connection, or bind a request shard connection.',
+            $this->getTable()
+        ));
     }
 
     /**

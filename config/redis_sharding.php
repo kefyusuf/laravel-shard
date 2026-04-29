@@ -16,7 +16,7 @@ return [
     'redis_connection' => env('REDIS_SHARD_CONNECTION', 'default'),
 
     // Default sharding strategy
-    'default_strategy' => env('REDIS_SHARD_STRATEGY', 'modulo'),
+    'default_strategy' => env('REDIS_SHARD_STRATEGY', 'consistent_hashing'),
 
     // Available sharding strategies
     'strategies' => [
@@ -71,6 +71,12 @@ return [
         ],
     ],
 
-    // Cache TTL for shard lookups (in seconds)
+    // Deprecated: authoritative shard mappings are persisted and no longer expired.
     'cache_ttl' => env('REDIS_SHARD_CACHE_TTL', 3600),
+
+    'locator' => [
+        'local_cache_limit' => env('REDIS_SHARD_LOCATOR_LOCAL_CACHE_LIMIT', 10000),
+        'circuit_breaker_seconds' => env('REDIS_SHARD_LOCATOR_CIRCUIT_BREAKER_SECONDS', 5),
+        'fallback_store' => env('REDIS_SHARD_LOCATOR_FALLBACK_STORE'),
+    ],
 ];

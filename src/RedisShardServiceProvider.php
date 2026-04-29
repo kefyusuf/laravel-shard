@@ -41,7 +41,8 @@ class RedisShardServiceProvider extends ServiceProvider
         $this->app->singleton(ShardLocatorInterface::class, function ($app) {
             return new ShardLocator(
                 $app->make('redis'),
-                $app->make('config')
+                $app->make('config'),
+                $app->make('cache')
             );
         });
 
@@ -141,6 +142,6 @@ class RedisShardServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
         // Register middleware
-        $this->app['router']->aliasMiddleware('shard', ShardRouteMiddleware::class);
+        $this->app->make('router')->aliasMiddleware('shard', ShardRouteMiddleware::class);
     }
 }

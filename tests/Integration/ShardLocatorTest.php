@@ -146,11 +146,19 @@ class ShardLocatorTest extends TestCase
         // Key should be in shard2's key set
         $shard2Keys = $this->locator->getKeysForShard('users', 'shard2');
         $this->assertContains('123', $shard2Keys);
-        
-        // Key should still be in shard1's key set (Redis sets don't auto-remove)
-        // This is expected behavior - the lookup will find shard2, but cleanup
-        // would need to be done separately
+
+        // Key should be removed from shard1's key set when the authoritative mapping changes.
         $shard1Keys = $this->locator->getKeysForShard('users', 'shard1');
-        $this->assertContains('123', $shard1Keys);
+        $this->assertNotContains('123', $shard1Keys);
+    }
+
+    public function test_it_persists_authoritative_mappings_without_expiration(): void
+    {
+        $this->locator->register('users', 777, 'shard1');
+
+        $ttl = $this->app->make('redis')->connection()->command('ttl', ['shard:users:777']);
+
+        $this->assertSame(-1, $ttl);
+        $this->assertSame('shard1', $this->locator->locate('users', 777));
     }
 }

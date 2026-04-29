@@ -44,6 +44,7 @@ abstract class TestCase extends Orchestra
         ]);
 
         // Redis configuration for testing
+        config()->set('database.redis.client', 'predis');
         config()->set('database.redis.default', [
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'password' => env('REDIS_PASSWORD', null),
@@ -54,7 +55,7 @@ abstract class TestCase extends Orchestra
         // Redis sharding configuration
         config()->set('redis_sharding', [
             'redis_connection' => 'default',
-            'default_strategy' => 'modulo',
+            'default_strategy' => 'consistent_hashing',
             'strategies' => [
                 'modulo' => \Laravel\RedisShard\Strategies\ModuloStrategy::class,
                 'consistent_hashing' => \Laravel\RedisShard\Strategies\ConsistentHashingStrategy::class,
