@@ -19,7 +19,13 @@ trait HandlesJsonOutput
             $json = '{"summary":{"status":"error"},"error":"Failed to encode JSON output."}';
         }
 
-        $this->output->write($json . PHP_EOL);
+        if ($this->output !== null) {
+            $this->output->write($json . PHP_EOL);
+
+            return;
+        }
+
+        $this->line($json);
     }
 
     /**
