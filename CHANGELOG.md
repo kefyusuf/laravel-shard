@@ -7,19 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Unreleased Added
+## [4.1.0] - 2026-09-28
 
-- `ShardDiagnosticReport` — comprehensive diagnostics (shards, latency, distribution balance, locator, modules, issues).
+### 4.1.0 Added
+
+- `ShardDiagnosticReport` â€” comprehensive diagnostics (shards, latency, distribution balance, locator, modules, issues).
 - `php artisan shard:report` with table/json output.
 - Health endpoint supports `?detail=1` (or `?verbose=1`) for the full diagnostic payload.
-- `ShardHealthReport` — lightweight health snapshot (works without Redis).
+- `ShardHealthReport` â€” lightweight health snapshot (works without Redis).
 - Optional HTTP health endpoint via `redis_sharding.metrics` (`GET /shard-health` by default).
+- Laravel Health integration (`ShardStatusCheck` / `LaravelShardHealthCheck`) when the framework health component is installed.
 - `shard:rebalance --limit=N` for gradual rebalancing; JSON summary includes `remaining_moves`.
 - Dry-run payload includes `limit` / `remaining_if_limited` for scripting.
 - `docs/REBALANCE.md` covering dry-run workflow, idempotent mover semantics, and custom movers.
 - Unit tests for idempotent `DatabaseRebalanceDataMover` (copy-then-delete, re-run, interrupted copy).
 
-### Unreleased Changed
+### 4.1.0 Changed
 
 - `DatabaseRebalanceDataMover::move()` is idempotent: a row already on the target is success; a missing row everywhere is failure.
 
@@ -117,7 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite, MySQL, and PostgreSQL support
 - Comprehensive README with examples
 
-[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.1...HEAD
+[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v2.0.0...v3.0.0

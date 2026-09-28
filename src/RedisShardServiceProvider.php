@@ -147,6 +147,7 @@ class RedisShardServiceProvider extends ServiceProvider
         $this->app->make('router')->aliasMiddleware('shard', ShardRouteMiddleware::class);
 
         $this->registerHealthRoute();
+        \Laravel\RedisShard\Metrics\HealthRegistrar::register();
 
         /** @var ModuleRegistry $modules */
         $modules = $this->app->make(ModuleRegistry::class);
