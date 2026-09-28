@@ -172,7 +172,7 @@ jobs:
 
       - name: Install dependencies in Docker
         run: |
-          PHP_VERSION=8.4 docker compose run --rm app bash -lc "git config --global --add safe.directory /app && composer config policy.advisories.block false && composer install --prefer-dist --no-interaction --no-progress --no-audit"
+          PHP_VERSION=8.4 docker compose run --rm app bash -lc "git config --global --add safe.directory /app && composer config policy.advisories.block false && composer install --prefer-dist --no-interaction --no-progress"
 
       - name: Execute full test suite in Docker
         run: PHP_VERSION=8.4 docker compose run --rm app bash -lc "git config --global --add safe.directory /app && vendor/bin/phpunit --colors=never"
@@ -190,7 +190,7 @@ jobs:
 
       - name: Install dependencies in Docker
         run: |
-          PHP_VERSION=8.4 docker compose run --rm app bash -lc "git config --global --add safe.directory /app && composer config policy.advisories.block false && composer install --prefer-dist --no-interaction --no-progress --no-audit"
+          PHP_VERSION=8.4 docker compose run --rm app bash -lc "git config --global --add safe.directory /app && composer config policy.advisories.block false && composer install --prefer-dist --no-interaction --no-progress"
 
       - name: Validate outage behavior
         run: |
