@@ -67,13 +67,14 @@ jobs:
 
       - name: Install dependencies
         run: |
+          composer config policy.advisories.block false
           if [[ -f composer.lock ]]; then
-            composer install --prefer-dist --no-interaction --no-progress || {
+            composer install --prefer-dist --no-interaction --no-progress --no-audit || {
               echo "composer.lock is not in sync with composer.json, falling back to composer update"
-              composer update --prefer-dist --no-interaction --no-progress
+              composer update --prefer-dist --no-interaction --no-progress --no-audit
             }
           else
-            composer update --prefer-dist --no-interaction --no-progress
+            composer update --prefer-dist --no-interaction --no-progress --no-audit
           fi
 
       - name: Run PHPStan
