@@ -25,36 +25,52 @@ jobs:
         run: composer validate --strict
 
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        php: [8.2, 8.3, 8.4]
-        laravel: [10.*, 11.*, 12.*, 13.*]
-        dependency-version: [prefer-stable]
         include:
-          - laravel: 10.*
-            testbench: ^8.0
-            phpunit: ^10.5
-          - laravel: 11.*
-            testbench: ^9.0
-            phpunit: ^11.5
-          - laravel: 12.*
-            testbench: ^10.0
-            phpunit: ^11.5
-          - laravel: 13.*
-            testbench: ^11.0
-            phpunit: ^12.0
-          - php: 8.3
-            laravel: 11.*
-            testbench: ^9.0
-            phpunit: ^11.5
+          - php: '8.2'
+            laravel: '10.*'
+            testbench: '^8.0'
+            phpunit: '^10.5'
+            dependency-version: prefer-stable
+          - php: '8.2'
+            laravel: '11.*'
+            testbench: '^9.0'
+            phpunit: '^11.5'
+            dependency-version: prefer-stable
+          - php: '8.2'
+            laravel: '12.*'
+            testbench: '^10.0'
+            phpunit: '^11.5'
+            dependency-version: prefer-stable
+          - php: '8.3'
+            laravel: '11.*'
+            testbench: '^9.0'
+            phpunit: '^11.5'
             dependency-version: prefer-lowest
-        exclude:
-          - laravel: 13.*
-            php: 8.2
+          - php: '8.3'
+            laravel: '12.*'
+            testbench: '^10.0'
+            phpunit: '^11.5'
+            dependency-version: prefer-stable
+          - php: '8.3'
+            laravel: '13.*'
+            testbench: '^11.0'
+            phpunit: '^12.0'
+            dependency-version: prefer-stable
+          - php: '8.4'
+            laravel: '12.*'
+            testbench: '^10.0'
+            phpunit: '^11.5'
+            dependency-version: prefer-stable
+          - php: '8.4'
+            laravel: '13.*'
+            testbench: '^11.0'
+            phpunit: '^12.0'
+            dependency-version: prefer-stable
 
     name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }} - ${{ matrix.dependency-version }}
 
