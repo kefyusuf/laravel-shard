@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-09-28
+
+### 4.0.1 Added
+
+- Consumer smoke workflow installing the package from Packagist into a fresh Laravel 13 app (`examples/smoke.php`).
+
+### 4.0.1 Changed
+
+- README Quick Start rewritten against the consumer smoke path: modules config, `getShardKeyName()`, `dispatchSharded()`, and smoke verification command.
+
+### 4.0.1 Fixed
+
+- CI: Composer advisory blocking, Docker `safe.directory`, explicit PHP/Laravel matrix includes, PHPStan unused-trait noise.
+
 ## [4.0.0] - 2026-09-28
 
 ### 4.0.0 Added
@@ -87,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite, MySQL, and PostgreSQL support
 - Comprehensive README with examples
 
-[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.1...HEAD
+[4.0.1]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v1.0.0...v2.0.0

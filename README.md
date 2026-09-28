@@ -188,15 +188,39 @@ Example:
 
 ## 🎯 Quick Start
 
-### 1. Create Your First Shard
+The steps below match the package consumer smoke test ([`examples/smoke.php`](examples/smoke.php)), which installs this package into a fresh Laravel app on every CI run.
+
+### 1. Install
 
 ```bash
-php artisan shard:create shard1 --host=127.0.0.1 --port=3306 --database=shard_1 --username=root --password=secret
+composer require kefyusuf/laravel-shard
+
+php artisan vendor:publish \
+  --provider="Laravel\RedisShard\RedisShardServiceProvider" \
+  --tag=config
 ```
 
-### 2. Add Sharding to Your Models
+### 2. Enable only the modules you need
 
-Use the `Shardable` trait in your Eloquent models:
+```php
+// config/redis_sharding.php
+'modules' => [
+    'core' => true,   // always on: strategies + Shardable + builders
+    'redis' => false, // true → persistent key→shard map in Redis
+    'queue' => true,  // shard-aware queued jobs
+],
+
+'connections' => [
+    'shard1' => ['driver' => 'sqlite', 'database' => database_path('shard1.sqlite')],
+    'shard2' => ['driver' => 'sqlite', 'database' => database_path('shard2.sqlite')],
+],
+```
+
+With `redis` disabled the package uses `ArrayShardLocator` and deterministic strategy routing — no Redis server required.
+
+### 3. Add sharding to your models
+
+Use the `Shardable` trait and override `getShardKeyName()` (do not redeclare `$shardKey`; the trait already defines it):
 
 ```php
 <?php
@@ -210,21 +234,23 @@ class User extends Model
 {
     use Shardable;
 
-    // Specify custom shard key (defaults to primary key)
-    protected ?string $shardKey = 'email';
-
     protected $fillable = ['name', 'email', 'password'];
+
+    public function getShardKeyName(): string
+    {
+        return 'email'; // defaults to primary key when omitted
+    }
 }
 ```
 
-### 3. Use Shard-Aware Queries
+### 4. Use shard-aware queries
 
 ```php
 // Create a user - routed using the shard key value
 $user = User::create([
     'name' => 'John Doe',
     'email' => 'john@example.com',
-    'password' => bcrypt('password')
+    'password' => bcrypt('password'),
 ]);
 
 // Single-shard lookup by shard key
@@ -233,11 +259,25 @@ $user = User::where('email', 'john@example.com')->first();
 // Single-shard bulk lookup by shard key
 $users = User::whereIn('email', ['john@example.com', 'jane@example.com'])->get();
 
-// Get shard information
+// Resolve the shard connection directly
 $shardConnection = ShardManager::getShardConnection('users', 'john@example.com');
 ```
 
-### 4. Use Middleware for Automatic Routing
+### 5. Dispatch shard-aware jobs (queue module)
+
+```php
+use App\Jobs\SyncUserProfile;
+use function Laravel\RedisShard\Queue\dispatchSharded;
+
+dispatchSharded(new SyncUserProfile(), $user);
+
+// or
+SyncUserProfile::dispatchSharded($user);
+```
+
+`RestoreShardContext` job middleware rebinds the shard connection on the worker before `handle()` runs.
+
+### 6. Use middleware for request routing
 
 ```php
 Route::get('/users/{email}', 'UserController@show')
@@ -249,6 +289,13 @@ Route::middleware(['shard:users,email'])->group(function () {
     Route::get('/users/{email}/orders', 'UserController@orders');
     Route::put('/users/{email}', 'UserController@update');
 });
+```
+
+### 7. Verify the wiring
+
+```bash
+php vendor/kefyusuf/laravel-shard/examples/smoke.php /path/to/your-app
+# smoke ok shard=shard1 locator=Laravel\RedisShard\Locators\ArrayShardLocator
 ```
 
 ## 🔧 Sharding Strategies
