@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Unreleased Added
+
+- `shard:rebalance --limit=N` for gradual rebalancing; JSON summary includes `remaining_moves`.
+- Dry-run payload includes `limit` / `remaining_if_limited` for scripting.
+- `docs/REBALANCE.md` covering dry-run workflow, idempotent mover semantics, and custom movers.
+- Unit tests for idempotent `DatabaseRebalanceDataMover` (copy-then-delete, re-run, interrupted copy).
+
+### Unreleased Changed
+
+- `DatabaseRebalanceDataMover::move()` is idempotent: a row already on the target is success; a missing row everywhere is failure.
+
 ## [4.0.1] - 2026-09-28
 
 ### 4.0.1 Added

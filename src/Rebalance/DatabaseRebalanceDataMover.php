@@ -7,6 +7,13 @@ namespace Laravel\RedisShard\Rebalance;
 use Illuminate\Support\Facades\DB;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 
+/**
+ * Copies a row to the target shard, then deletes it from the source.
+ *
+ * The operation is idempotent: re-running after a successful move is a no-op
+ * success. Interruptions that leave a row on both shards are recoverable by
+ * re-running the same command.
+ */
 class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
 {
     /**
@@ -26,33 +33,37 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
     {
         $keyColumn = $this->resolveKeyColumn($table);
 
-        return DB::connection($fromShard)->transaction(function () use ($table, $key, $fromShard, $toShard, $keyColumn) {
-            $sourceRow = DB::connection($fromShard)
+        $targetRow = DB::connection($toShard)
+            ->table($table)
+            ->where($keyColumn, $key)
+            ->first();
+
+        $sourceRow = DB::connection($fromShard)
+            ->table($table)
+            ->where($keyColumn, $key)
+            ->first();
+
+        // Already on the target and gone from the source: nothing to do.
+        if ($sourceRow === null) {
+            return $targetRow !== null;
+        }
+
+        $payload = (array) $sourceRow;
+        $keyValue = $payload[$keyColumn] ?? $key;
+
+        DB::connection($toShard)->table($table)->updateOrInsert(
+            [$keyColumn => $keyValue],
+            $payload
+        );
+
+        if ($this->deleteSourceAfterCopy) {
+            DB::connection($fromShard)
                 ->table($table)
                 ->where($keyColumn, $key)
-                ->first();
+                ->delete();
+        }
 
-            if ($sourceRow === null) {
-                return false;
-            }
-
-            $payload = (array) $sourceRow;
-            $keyValue = $payload[$keyColumn] ?? $key;
-
-            DB::connection($toShard)->table($table)->updateOrInsert(
-                [$keyColumn => $keyValue],
-                $payload
-            );
-
-            if ($this->deleteSourceAfterCopy) {
-                DB::connection($fromShard)
-                    ->table($table)
-                    ->where($keyColumn, $key)
-                    ->delete();
-            }
-
-            return true;
-        });
+        return true;
     }
 
     protected function resolveKeyColumn(string $table): string

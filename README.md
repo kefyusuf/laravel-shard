@@ -51,6 +51,7 @@ With `redis` disabled the package falls back to `ArrayShardLocator` (process-loc
 
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get started in 5 minutes
 - **[API Reference](docs/API.md)** - Complete API documentation
+- **[Rebalance Operations](docs/REBALANCE.md)** - Dry-run, gradual moves, idempotent rebalance
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate existing applications
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization and benchmarks
 - **[Release Runbook](docs/RELEASE_RUNBOOK.md)** - Package + consumer release checklist

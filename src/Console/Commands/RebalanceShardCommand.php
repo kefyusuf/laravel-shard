@@ -32,6 +32,7 @@ class RebalanceShardCommand extends Command
                              {--dry-run : Run without making changes}
                              {--force : Skip confirmation prompt}
                              {--metadata-only : Update only shard mappings, do not move table data}
+                             {--limit= : Maximum number of moves to perform in this run}
                              {--format=table : Output format (table, json)}
                              {--strategy= : The sharding strategy to use}';
 
@@ -54,6 +55,16 @@ class RebalanceShardCommand extends Command
         $dryRun = $this->option('dry-run');
         $force = $this->option('force');
         $metadataOnly = $this->option('metadata-only');
+        $limitOption = $this->option('limit');
+        $limit = ($limitOption === null || $limitOption === '') ? null : (int) $limitOption;
+        if ($limit !== null && $limit < 1) {
+            return $this->respond(1, $this->buildErrorPayload(
+                $table,
+                $dryRun,
+                $metadataOnly,
+                '--limit must be a positive integer'
+            ));
+        }
         $format = $this->validateOutputFormat((string) $this->option('format'));
         if ($format === null) {
             return 1;
@@ -166,6 +177,16 @@ class RebalanceShardCommand extends Command
             $this->info("Total moves needed: " . count($moves));
         }
 
+        $plannedMoves = $moves;
+        $limited = false;
+        if ($limit !== null && count($plannedMoves) > $limit) {
+            $plannedMoves = array_slice($plannedMoves, 0, $limit);
+            $limited = true;
+            if (!$this->jsonOutput) {
+                $this->warn("Limiting this run to {$limit} moves (" . count($moves) . ' planned)');
+            }
+        }
+
         if (empty($moves)) {
             $this->refreshShardMetadata($locator, $table, $availableShards);
 
@@ -188,7 +209,8 @@ class RebalanceShardCommand extends Command
                 $metadataOnly,
                 $strategy->getName(),
                 $totalKeys,
-                $moves
+                $moves,
+                $limit
             ));
         }
 
@@ -202,7 +224,8 @@ class RebalanceShardCommand extends Command
                     'metadata_only' => $metadataOnly,
                     'strategy' => $strategy->getName(),
                     'total_keys' => $totalKeys,
-                    'total_moves' => count($moves),
+                    'total_moves' => count($plannedMoves),
+                    'planned_moves_all' => count($moves),
                 ],
             ]);
         }
@@ -210,14 +233,14 @@ class RebalanceShardCommand extends Command
         // Perform the moves
         $bar = null;
         if (!$this->jsonOutput) {
-            $bar = $this->output->createProgressBar(count($moves));
+            $bar = $this->output->createProgressBar(count($plannedMoves));
             $bar->start();
         }
 
         $successCount = 0;
         $errorCount = 0;
 
-        foreach ($moves as $move) {
+        foreach ($plannedMoves as $move) {
             try {
                 if (!$metadataOnly && $dataMover !== null) {
                     $moved = $dataMover->move($table, $move['key'], $move['from'], $move['to']);
@@ -238,7 +261,7 @@ class RebalanceShardCommand extends Command
                 }
                 $errorCount++;
             }
-            
+
             if ($bar !== null) {
                 $bar->advance();
             }
@@ -252,6 +275,7 @@ class RebalanceShardCommand extends Command
         $this->refreshShardMetadata($locator, $table, $availableShards);
 
         $exitCode = $errorCount > 0 ? 1 : 0;
+        $remaining = max(0, count($moves) - count($plannedMoves));
 
         return $this->respond($exitCode, [
             'summary' => [
@@ -261,9 +285,12 @@ class RebalanceShardCommand extends Command
                 'metadata_only' => $metadataOnly,
                 'strategy' => $strategy->getName(),
                 'total_keys' => $totalKeys,
-                'total_moves' => count($moves),
+                'total_moves' => count($plannedMoves),
+                'planned_moves_all' => count($moves),
                 'successful_moves' => $successCount,
                 'failed_moves' => $errorCount,
+                'limited' => $limited,
+                'remaining_moves' => $remaining,
             ],
         ]);
     }
@@ -337,8 +364,13 @@ class RebalanceShardCommand extends Command
         bool $metadataOnly,
         string $strategy,
         int $totalKeys,
-        array $moves
+        array $moves,
+        ?int $limit = null
     ): array {
+        $sample = $limit === null
+            ? array_slice($moves, 0, 20)
+            : array_slice($moves, 0, $limit);
+
         return [
             'summary' => [
                 'table' => $table,
@@ -348,8 +380,11 @@ class RebalanceShardCommand extends Command
                 'strategy' => $strategy,
                 'total_keys' => $totalKeys,
                 'total_moves' => count($moves),
+                'limit' => $limit,
+                'sample_moves' => count($sample),
+                'remaining_if_limited' => $limit === null ? 0 : max(0, count($moves) - $limit),
             ],
-            'moves' => $moves,
+            'moves' => $limit === null ? $moves : array_slice($moves, 0, $limit),
         ];
     }
 }

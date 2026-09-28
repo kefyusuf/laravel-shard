@@ -337,6 +337,66 @@ class RebalanceShardCommandTest extends TestCase
         $this->assertSame(0, $exitCode);
     }
 
+    public function test_dry_run_payload_reports_limit(): void
+    {
+        $this->prepareDeterministicRebalanceEnvironment();
+
+        $locator = new class implements ShardLocatorInterface {
+            /** @var array<string, array<string, string>> */
+            public array $keys = [
+                'users' => [
+                    '1' => 'shard1',
+                    '2' => 'shard1',
+                    '3' => 'shard1',
+                ],
+            ];
+
+            public function locate(string $table, mixed $key): ?string
+            {
+                return $this->keys[$table][(string) $key] ?? null;
+            }
+
+            public function register(string $table, mixed $key, string $shardConnection): bool
+            {
+                $this->keys[$table][(string) $key] = $shardConnection;
+                return true;
+            }
+
+            public function forget(string $table, mixed $key): bool
+            {
+                return true;
+            }
+
+            public function getKeysForShard(string $table, string $shardConnection): array
+            {
+                $keys = [];
+                foreach (($this->keys[$table] ?? []) as $key => $shard) {
+                    if ($shard === $shardConnection) {
+                        $keys[] = $key;
+                    }
+                }
+
+                return $keys;
+            }
+        };
+
+        $this->app->instance(ShardLocatorInterface::class, $locator);
+        $this->app->instance('shard.locator', $locator);
+        Facade::clearResolvedInstance('shard.manager');
+
+        Artisan::call('shard:rebalance', [
+            'table' => 'users',
+            '--dry-run' => true,
+            '--format' => 'json',
+            '--limit' => 1,
+        ]);
+
+        $payload = json_decode(Artisan::output(), true);
+        $this->assertIsArray($payload);
+        $this->assertSame(1, $payload['summary']['limit'] ?? null);
+        $this->assertArrayHasKey('remaining_if_limited', $payload['summary']);
+    }
+
     /**
      * @param array<string, array<string, mixed>>|null $connections
      */
