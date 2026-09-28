@@ -4,6 +4,11 @@ parameters:
         - src
     excludePaths:
         - src/Console/Commands/*
+    ignoreErrors:
+        # Traits are public API for consumer models; they are not referenced inside src.
+        -
+            message: '#Trait Laravel\\RedisShard\\.* is used zero times and is not analysed#'
+            reportUnmatched: false
     tmpDir: build/phpstan
     parallel:
         maximumNumberOfProcesses: 1

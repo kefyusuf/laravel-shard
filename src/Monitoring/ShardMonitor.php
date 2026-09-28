@@ -103,8 +103,8 @@ class ShardMonitor
             
             $shardMetrics[$shardName] = [
                 'name' => $shardName,
-                'status' => $meta?->status ?? 'unknown',
-                'record_count' => $meta?->record_count ?? 0,
+                'status' => $meta->status ?? 'unknown',
+                'record_count' => $meta->record_count ?? 0,
                 'created_at' => $meta?->created_at,
                 'last_rebalanced_at' => $meta?->last_rebalanced_at,
                 'connection_status' => $this->checkShardConnection($shardName),
