@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Unreleased Added
 
+- `ShardDiagnosticReport` — comprehensive diagnostics (shards, latency, distribution balance, locator, modules, issues).
+- `php artisan shard:report` with table/json output.
+- Health endpoint supports `?detail=1` (or `?verbose=1`) for the full diagnostic payload.
 - `ShardHealthReport` — lightweight health snapshot (works without Redis).
 - Optional HTTP health endpoint via `redis_sharding.metrics` (`GET /shard-health` by default).
 - `shard:rebalance --limit=N` for gradual rebalancing; JSON summary includes `remaining_moves`.

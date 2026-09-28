@@ -12,6 +12,7 @@ use Laravel\RedisShard\Console\Commands\RebalanceShardCommand;
 use Laravel\RedisShard\Console\Commands\ShardAnalyzeCommand;
 use Laravel\RedisShard\Console\Commands\ShardCleanupCommand;
 use Laravel\RedisShard\Console\Commands\ShardHealthCommand;
+use Laravel\RedisShard\Console\Commands\ShardReportCommand;
 use Laravel\RedisShard\Console\Commands\ShardStatusCommand;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
@@ -135,6 +136,7 @@ class RedisShardServiceProvider extends ServiceProvider
                 InstallCommand::class,
                 ShardStatusCommand::class,
                 ShardHealthCommand::class,
+                ShardReportCommand::class,
                 ShardAnalyzeCommand::class,
                 ShardCleanupCommand::class,
             ]);

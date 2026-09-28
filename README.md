@@ -205,12 +205,23 @@ curl -s https://app.example.com/shard-health
 # {"status":"ok","summary":{"total":2,"up":2,"down":0}, ...}
 ```
 
-Status is `ok` (all shards reachable), `degraded` (partial), or `down` (none reachable). Programmatic access:
+Status is `ok` (all shards reachable), `degraded` (partial), or `down` (none reachable).
+
+Add `?detail=1` for a full diagnostics payload (latency, distribution balance, modules, issues), or use the console:
+
+```bash
+php artisan shard:report              # table
+php artisan shard:report --format=json
+```
+
+Programmatic access:
 
 ```php
 use Laravel\RedisShard\Metrics\ShardHealthReport;
+use Laravel\RedisShard\Metrics\ShardDiagnosticReport;
 
-$report = app(ShardHealthReport::class)->toArray();
+$light = app(ShardHealthReport::class)->toArray();
+$full  = app(ShardDiagnosticReport::class)->toArray();
 ```
 
 ## 🎯 Quick Start
