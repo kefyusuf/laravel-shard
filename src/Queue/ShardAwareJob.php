@@ -14,6 +14,18 @@ abstract class ShardAwareJob implements ShardAwareInterface
 {
     use SerializesShardContext;
 
+    /**
+     * Dispatch this job with shard affinity captured from a model.
+     */
+    public static function dispatchSharded(Model $model, mixed ...$arguments): \Illuminate\Foundation\Bus\PendingDispatch
+    {
+        /** @var static $job */
+        $job = app()->make(static::class, $arguments);
+        $job->setShardContext(ShardContextDispatcher::capture($model));
+
+        return dispatch($job);
+    }
+
     public function middleware(): array
     {
         return [new RestoreShardContext()];

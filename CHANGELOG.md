@@ -7,25 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Unreleased Added
+## [3.0.0] - 2026-09-28
+
+### 3.0.0 Added
 
 - Optional module system: `core` (always on), `redis` (persistent shard map), `queue` (shard-aware jobs) via `redis_sharding.modules`.
 - `ArrayShardLocator` and `NullShardLocator` for Redis-free routing (strategy-only or process-local maps).
-- Queue module: `ShardContext`, `SerializesShardContext`, `ShardAwareJob`, `RestoreShardContext` job middleware, `ShardContextDispatcher`.
+- Queue module: `ShardContext`, `SerializesShardContext`, `ShardAwareJob`, `RestoreShardContext` job middleware, `ShardContextDispatcher`, and `dispatchSharded()` / `ShardAwareJob::dispatchSharded()`.
 - Docker-focused validation targets: `test-focused`, `test-docker`, and `test-docker-focused`.
 - A GitHub Actions Docker Compose validation job that runs the full PHPUnit suite against the package's Redis-backed container environment.
+- CI job `test-without-redis-module` proving the suite passes with `REDIS_SHARD_MODULE_REDIS=false`.
 - Expanded API, README, and Quick Start guidance for deterministic query routing and locator fallback-store operations.
 
-### Unreleased Changed
+### 3.0.0 Changed
 
-- `illuminate/redis` and `predis/predis` are now suggested (optional) dependencies; core routing works without Redis.
+- **Breaking:** package name is now `kefyusuf/laravel-shard` (was `yusuf.kef/laravel-redis-shard`).
+- **Breaking:** `illuminate/redis` and `predis/predis` are suggested (optional) dependencies; core routing works without Redis.
 - Locator binding is lazy and switches between `RedisShardLocator` (redis module) and `ArrayShardLocator` (default) based on `redis_sharding.modules`.
 - Updated support matrix to Laravel 10.x-13.x and PHP 8.2+.
 - Updated CI matrix to test Laravel 10/11/12/13 against PHP 8.2/8.3/8.4.
 - Made shard strategy resolution container-aware for dependency-injected custom strategies.
 - Changed the default sharding strategy to `consistent_hashing` and aligned integration coverage with that default.
 
-### Unreleased Fixed
+### 3.0.0 Fixed
 
 - `Shardable` now resolves shard connection during `creating` even when default connection exists.
 - `ShardableBuilder` now falls back to deterministic strategy routing when Redis lookup misses.
@@ -83,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite, MySQL, and PostgreSQL support
 - Comprehensive README with examples
 
-[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/kefyusuf/laravel-shard/releases/tag/v1.0.0
