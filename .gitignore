@@ -58,3 +58,6 @@ Desktop.ini
 
 # Claude Code workspace
 /.claude/
+
+# Browser automation artifacts
+/.playwright-mcp/
