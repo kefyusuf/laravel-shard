@@ -5,7 +5,7 @@ Get up and running with Laravel Redis Sharding in 5 minutes!
 ## 1. Install (1 minute)
 
 ```bash
-composer require yusuf.kef/laravel-shard
+composer require kefyusuf/laravel-shard
 ```
 
 The package auto-registers via Laravel's package discovery.
@@ -79,7 +79,7 @@ class User extends Model
 }
 ```
 
-## ðŸŽ‰ You're Done
+## Ã°Å¸Å½â€° You're Done
 
 ## Before You Ship
 
@@ -156,16 +156,16 @@ Route::get('/users/{email}', 'UserController@show')
 
 ## Next Steps
 
-- ðŸ“– Read [full documentation](../README.md)
-- ðŸ—ï¸ See [example application](../examples/ExampleApplication.md)
-- ðŸ“š Browse [API reference](../docs/API.md)
-- ðŸš€ Check [migration guide](../docs/MIGRATION_GUIDE.md)
-- âš¡ Run [performance benchmarks](../benchmarks/README.md)
+- Ã°Å¸â€œâ€“ Read [full documentation](../README.md)
+- Ã°Å¸Ââ€”Ã¯Â¸Â See [example application](../examples/ExampleApplication.md)
+- Ã°Å¸â€œÅ¡ Browse [API reference](../docs/API.md)
+- Ã°Å¸Å¡â‚¬ Check [migration guide](../docs/MIGRATION_GUIDE.md)
+- Ã¢Å¡Â¡ Run [performance benchmarks](../benchmarks/README.md)
 
 ## Need Help?
 
-- ðŸ› [Report an issue](https://github.com/kefyusuf/laravel-shard/issues)
-- ðŸ’¬ [Ask a question](https://github.com/kefyusuf/laravel-shard/discussions)
-- ðŸ“§ [Email support](mailto:kefyusuf@gmail.com)
+- Ã°Å¸Ââ€º [Report an issue](https://github.com/kefyusuf/laravel-shard/issues)
+- Ã°Å¸â€™Â¬ [Ask a question](https://github.com/kefyusuf/laravel-shard/discussions)
+- Ã°Å¸â€œÂ§ [Email support](mailto:kefyusuf@gmail.com)
 
 **Pro tip:** Run `php artisan shard:health` regularly to monitor your shards!

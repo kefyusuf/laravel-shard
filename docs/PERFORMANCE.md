@@ -83,7 +83,7 @@ Database server improvements scale linearly:
 **Cross-Region (50-100ms)**
 - Significant impact on cross-shard operations
 - Single shard operations: +50-100ms
-- Cross-shard queries: +(50-100ms Ã— shard count)
+- Cross-shard queries: +(50-100ms Ãƒâ€” shard count)
 
 **Recommendations:**
 - Keep related data on same shard
@@ -182,11 +182,11 @@ $user = Cache::remember("user:{$userId}", 300, function () use ($userId) {
 ### 1. Choose the Right Shard Key
 
 ```php
-// âœ… Good: High cardinality, evenly distributed
+// Ã¢Å“â€¦ Good: High cardinality, evenly distributed
 protected ?string $shardKey = 'user_id';
 protected ?string $shardKey = 'email';
 
-// âŒ Bad: Low cardinality, uneven distribution
+// Ã¢ÂÅ’ Bad: Low cardinality, uneven distribution
 protected ?string $shardKey = 'country'; // Only ~200 values
 protected ?string $shardKey = 'status';  // Only 2-5 values
 ```
@@ -194,10 +194,10 @@ protected ?string $shardKey = 'status';  // Only 2-5 values
 ### 2. Minimize Cross-Shard Operations
 
 ```php
-// âŒ Slow: Cross-shard query
+// Ã¢ÂÅ’ Slow: Cross-shard query
 $users = User::crossShard()->where('status', 'active')->get();
 
-// âœ… Fast: Single shard query
+// Ã¢Å“â€¦ Fast: Single shard query
 $shard = ShardManager::getShardConnection('users', $userId);
 $user = User::on($shard)->find($userId);
 ```
@@ -218,12 +218,12 @@ Cache::tags(['users'])->remember("user:{$userId}", 300, function () {
 ### 4. Batch Operations
 
 ```php
-// âŒ Slow: Individual operations
+// Ã¢ÂÅ’ Slow: Individual operations
 foreach ($userIds as $userId) {
     User::find($userId)->update(['status' => 'active']);
 }
 
-// âœ… Fast: Batch update
+// Ã¢Å“â€¦ Fast: Batch update
 User::batchUpdateAcrossShards(
     ['id' => $userIds],
     ['status' => 'active']
@@ -252,10 +252,10 @@ User::batchUpdateAcrossShards(
 
 Laravel Redis Sharding provides excellent performance for distributed data workloads:
 
-- âœ… Linear scaling with shard count (up to 10-15 shards)
-- âœ… Sub-millisecond shard lookups with Redis
-- âœ… Efficient connection pooling
-- âœ… Flexible caching strategies
+- Ã¢Å“â€¦ Linear scaling with shard count (up to 10-15 shards)
+- Ã¢Å“â€¦ Sub-millisecond shard lookups with Redis
+- Ã¢Å“â€¦ Efficient connection pooling
+- Ã¢Å“â€¦ Flexible caching strategies
 
 **Best suited for:**
 - High-volume transactional systems

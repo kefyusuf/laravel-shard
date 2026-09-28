@@ -1,5 +1,5 @@
 {
-    "name": "yusuf.kef/laravel-shard",
+    "name": "kefyusuf/laravel-shard",
     "description": "Modular database sharding for Laravel: deterministic shard routing with optional Redis map and shard-aware queues.",
     "keywords": ["laravel", "redis", "sharding", "database", "scaling", "distributed", "multi-tenant"],
     "type": "library",

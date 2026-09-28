@@ -650,7 +650,7 @@ User::created(function ($user) {
 
 ## Need Help?
 
-- ðŸ“– [README](../README.md)
-- ðŸ“˜ [Migration Guide](MIGRATION_GUIDE.md)
-- ðŸ“Š [Performance Docs](PERFORMANCE.md)
-- ðŸ› [Report Issue](https://github.com/kefyusuf/laravel-shard/issues)
+- Ã°Å¸â€œâ€“ [README](../README.md)
+- Ã°Å¸â€œËœ [Migration Guide](MIGRATION_GUIDE.md)
+- Ã°Å¸â€œÅ  [Performance Docs](PERFORMANCE.md)
+- Ã°Å¸Ââ€º [Report Issue](https://github.com/kefyusuf/laravel-shard/issues)

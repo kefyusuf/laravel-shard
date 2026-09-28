@@ -18,13 +18,13 @@ This guide helps you migrate an existing Laravel application to use Redis-based 
 
 Before migrating, ensure you have:
 
-- âœ… Laravel 10.x, 11.x, 12.x, or 13.x installed
-- âœ… PHP 8.2 or higher
-- âœ… Redis server running and accessible
-- âœ… Multiple database servers configured (or multiple databases on one server)
-- âœ… Full database backup created
-- âœ… Staging environment for testing
-- âœ… A shard key that is available before insert for every sharded model
+- Ã¢Å“â€¦ Laravel 10.x, 11.x, 12.x, or 13.x installed
+- Ã¢Å“â€¦ PHP 8.2 or higher
+- Ã¢Å“â€¦ Redis server running and accessible
+- Ã¢Å“â€¦ Multiple database servers configured (or multiple databases on one server)
+- Ã¢Å“â€¦ Full database backup created
+- Ã¢Å“â€¦ Staging environment for testing
+- Ã¢Å“â€¦ A shard key that is available before insert for every sharded model
 
 ---
 
@@ -33,8 +33,8 @@ Before migrating, ensure you have:
 ### Overview
 
 ```
-[Current Single DB] â†’ [Staging with Sharding] â†’ [Production with Sharding]
-       â†“                       â†“                         â†“
+[Current Single DB] Ã¢â€ â€™ [Staging with Sharding] Ã¢â€ â€™ [Production with Sharding]
+       Ã¢â€ â€œ                       Ã¢â€ â€œ                         Ã¢â€ â€œ
    Backup Data         Test Migration              Full Migration
                       Validate Results             Monitor Performance
 ```
@@ -52,7 +52,7 @@ Before migrating, ensure you have:
 ### 1. Install the Package
 
 ```bash
-composer require yusuf.kef/laravel-shard
+composer require kefyusuf/laravel-shard
 ```
 
 ### 2. Publish Configuration
@@ -202,9 +202,9 @@ foreach (ShardManager::getAvailableShards() as $shard) {
 }
 
 if ($originalCount === $shardedCount) {
-    echo "âœ… Migration successful!\n";
+    echo "Ã¢Å“â€¦ Migration successful!\n";
 } else {
-    echo "âŒ Migration failed! Original: {$originalCount}, Sharded: {$shardedCount}\n";
+    echo "Ã¢ÂÅ’ Migration failed! Original: {$originalCount}, Sharded: {$shardedCount}\n";
     exit(1);
 }
 
@@ -437,8 +437,8 @@ php artisan shard:rebalance users --strategy=consistent_hashing
 ## Support
 
 For assistance:
-- ðŸ“– [Full Documentation](../README.md)
-- ðŸ› [Report Issues](https://github.com/kefyusuf/laravel-shard/issues)
-- ðŸ’¬ [Discussions](https://github.com/kefyusuf/laravel-shard/discussions)
+- Ã°Å¸â€œâ€“ [Full Documentation](../README.md)
+- Ã°Å¸Ââ€º [Report Issues](https://github.com/kefyusuf/laravel-shard/issues)
+- Ã°Å¸â€™Â¬ [Discussions](https://github.com/kefyusuf/laravel-shard/discussions)
 
-Good luck with your migration! ðŸš€
+Good luck with your migration! Ã°Å¸Å¡â‚¬

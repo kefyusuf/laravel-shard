@@ -2,14 +2,14 @@
 
 [![Tests](https://github.com/kefyusuf/laravel-shard/workflows/Tests/badge.svg)](https://github.com/kefyusuf/laravel-shard/actions)
 [![Code Quality](https://github.com/kefyusuf/laravel-shard/workflows/Code%20Quality/badge.svg)](https://github.com/kefyusuf/laravel-shard/actions)
-[![Latest Stable Version](https://poser.pugx.org/yusuf.kef/laravel-shard/v/stable)](https://packagist.org/packages/yusuf.kef/laravel-shard)
-[![Total Downloads](https://poser.pugx.org/yusuf.kef/laravel-shard/downloads)](https://packagist.org/packages/yusuf.kef/laravel-shard)
-[![License](https://poser.pugx.org/yusuf.kef/laravel-shard/license)](https://packagist.org/packages/yusuf.kef/laravel-shard)
-[![PHP Version Require](https://poser.pugx.org/yusuf.kef/laravel-shard/require/php)](https://packagist.org/packages/yusuf.kef/laravel-shard)
+[![Latest Stable Version](https://poser.pugx.org/kefyusuf/laravel-shard/v/stable)](https://packagist.org/packages/kefyusuf/laravel-shard)
+[![Total Downloads](https://poser.pugx.org/kefyusuf/laravel-shard/downloads)](https://packagist.org/packages/kefyusuf/laravel-shard)
+[![License](https://poser.pugx.org/kefyusuf/laravel-shard/license)](https://packagist.org/packages/kefyusuf/laravel-shard)
+[![PHP Version Require](https://poser.pugx.org/kefyusuf/laravel-shard/require/php)](https://packagist.org/packages/kefyusuf/laravel-shard)
 
 A modular shard locator for Laravel applications that provides deterministic shard routing for shard-key-aware Eloquent workflows. Redis-backed maps and shard-aware queues are optional modules.
 
-## âœ¨ Features
+## Ã¢Å“Â¨ Features
 
 - **Deterministic Shard Routing**: Route shard-key-aware reads and writes to the correct shard
 - **Redis-Based Lookup**: Persistent key-to-shard mappings stored in Redis
@@ -22,7 +22,7 @@ A modular shard locator for Laravel applications that provides deterministic sha
 - **Cross-Shard Operations**: Support for cross-shard queries and aggregations
 - **Laravel Integration**: Native Laravel service provider with Artisan commands
 
-## ðŸ“‹ Requirements
+## Ã°Å¸â€œâ€¹ Requirements
 
 - PHP 8.2, 8.3, or 8.4
 - Laravel 10.x, 11.x, 12.x, or 13.x
@@ -32,8 +32,8 @@ A modular shard locator for Laravel applications that provides deterministic sha
 
 | Module | Default | Needs | Provides |
 | --- | --- | --- | --- |
-| `core` | always on | â€” | strategies, `Shardable`, builders, CLI |
-| `redis` | on | `predis` + `illuminate/redis` | persistent keyâ†’shard map (`RedisShardLocator`) |
+| `core` | always on | Ã¢â‚¬â€ | strategies, `Shardable`, builders, CLI |
+| `redis` | on | `predis` + `illuminate/redis` | persistent keyÃ¢â€ â€™shard map (`RedisShardLocator`) |
 | `queue` | off | `illuminate/queue` | shard-aware jobs (`ShardAwareJob`, `RestoreShardContext`) |
 
 With `redis` disabled the package falls back to `ArrayShardLocator` (process-local map) and deterministic strategy routing. No Redis server is required.
@@ -47,7 +47,7 @@ With `redis` disabled the package falls back to `ArrayShardLocator` (process-loc
 ],
 ```
 
-## ðŸ“š Documentation
+## Ã°Å¸â€œÅ¡ Documentation
 
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get started in 5 minutes
 - **[API Reference](docs/API.md)** - Complete API documentation
@@ -57,12 +57,12 @@ With `redis` disabled the package falls back to `ArrayShardLocator` (process-loc
 - **[Example Application](examples/ExampleApplication.md)** - Multi-tenant SaaS example
 - **[Load Testing](examples/LoadTestingExample.php)** - Performance testing tools
 
-## ðŸš€ Installation
+## Ã°Å¸Å¡â‚¬ Installation
 
 Install the package via Composer:
 
 ```bash
-composer require yusuf.kef/laravel-shard
+composer require kefyusuf/laravel-shard
 ```
 
 The package will automatically register its service provider thanks to Laravel's package auto-discovery.
@@ -79,7 +79,7 @@ Run the migrations:
 php artisan migrate
 ```
 
-## ðŸ³ Local Development (Docker)
+## Ã°Å¸ÂÂ³ Local Development (Docker)
 
 The repository ships with a Docker stack that bundles PHP (with the `redis` extension via PECL), Composer, and a Redis 7 service so you can run the full test suite without installing anything on the host.
 
@@ -94,16 +94,16 @@ make matrix             # build and test against PHP 8.2, 8.3, 8.4
 
 Override the PHP version via `PHP_VERSION` (e.g. `make PHP_VERSION=8.4 test`).
 
-## âš™ï¸ Configuration
+## Ã¢Å¡â„¢Ã¯Â¸Â Configuration
 
 After publishing the config file, configure your shards in `config/redis_sharding.php`:
 
 ```php
 return [
-    // Optional modules â€” core is always on
+    // Optional modules Ã¢â‚¬â€ core is always on
     'modules' => [
         'core' => true,
-        'redis' => env('REDIS_SHARD_MODULE_REDIS', true), // persistent keyâ†’shard map
+        'redis' => env('REDIS_SHARD_MODULE_REDIS', true), // persistent keyÃ¢â€ â€™shard map
         'queue' => env('REDIS_SHARD_MODULE_QUEUE', false), // shard-aware queued jobs
     ],
 
@@ -186,7 +186,7 @@ Example:
 ],
 ```
 
-## ðŸŽ¯ Quick Start
+## Ã°Å¸Å½Â¯ Quick Start
 
 ### 1. Create Your First Shard
 
@@ -251,7 +251,7 @@ Route::middleware(['shard:users,email'])->group(function () {
 });
 ```
 
-## ðŸ”§ Sharding Strategies
+## Ã°Å¸â€Â§ Sharding Strategies
 
 The package supports three different sharding strategies:
 
@@ -288,7 +288,7 @@ Distributes data based on key ranges.
 **Pros**: Good for time-series or sequential data
 **Cons**: Can create hotspots if data isn't evenly distributed
 
-## ðŸŽ›ï¸ Artisan Commands
+## Ã°Å¸Å½â€ºÃ¯Â¸Â Artisan Commands
 
 ### Shard Management
 
@@ -375,7 +375,7 @@ Common payload conventions:
   - `analyze`: `summary` + `results`/`analysis`
   - `rebalance`: `summary` (+ `moves` in dry-run mode)
 
-## ðŸ“Š Monitoring & Performance
+## Ã°Å¸â€œÅ  Monitoring & Performance
 
 ### Built-in Monitoring System
 
@@ -469,7 +469,7 @@ $stats = $pool->getStats();
 $results = $pool->testConnections();
 ```
 
-## ðŸ”„ Advanced Usage
+## Ã°Å¸â€â€ž Advanced Usage
 
 ### Cross-Shard Query Builder
 
@@ -566,7 +566,7 @@ $shardInfo = $user->getShardInfo();
 // Returns: ['shard_connection' => 'shard1', 'shard_key' => 'email', 'shard_key_value' => 'john@example.com']
 ```
 
-## ðŸ›¡ï¸ Configuration Validation
+## Ã°Å¸â€ºÂ¡Ã¯Â¸Â Configuration Validation
 
 The package includes comprehensive configuration validation to prevent common setup issues:
 
@@ -596,7 +596,7 @@ foreach ($recommendations as $recommendation) {
 - **Auto-Provisioning Validation**: Validates auto-scaling settings
 - **Helpful Recommendations**: Provides optimization suggestions
 
-## ðŸ§ª Comprehensive Testing
+## Ã°Å¸Â§Âª Comprehensive Testing
 
 The package includes extensive testing coverage:
 
@@ -658,7 +658,7 @@ $monitor = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class);
 $health = $monitor->collectMetrics()['health'];
 ```
 
-## ðŸ—ï¸ Real-World Examples
+## Ã°Å¸Ââ€”Ã¯Â¸Â Real-World Examples
 
 ### E-commerce Application
 
@@ -747,16 +747,16 @@ $userFeed = Post::crossShard()
     ->get();
 ```
 
-## ðŸ“‹ Best Practices
+## Ã°Å¸â€œâ€¹ Best Practices
 
 ### 1. Choosing the Right Shard Key
 
 ```php
-// âœ… Good: High cardinality, evenly distributed
+// Ã¢Å“â€¦ Good: High cardinality, evenly distributed
 protected ?string $shardKey = 'user_email';
 protected ?string $shardKey = 'user_id';
 
-// âŒ Avoid: Low cardinality, uneven distribution
+// Ã¢ÂÅ’ Avoid: Low cardinality, uneven distribution
 protected ?string $shardKey = 'status'; // Only few values
 protected ?string $shardKey = 'country'; // Uneven distribution
 ```
@@ -813,7 +813,7 @@ $results = User::batchUpdateAcrossShards(
 );
 ```
 
-## ðŸ” Consumer Release Automation
+## Ã°Å¸â€Â Consumer Release Automation
 
 This package repo includes an automation workflow that dispatches the consumer repo post-release integration check when a GitHub release is published.
 
@@ -831,7 +831,7 @@ Optional workflow_dispatch inputs:
 - `consumer_repo`
 - `consumer_ref`
 
-## ðŸ¤ Contributing
+## Ã°Å¸Â¤Â Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -855,7 +855,7 @@ vendor/bin/phpunit
 vendor/bin/php-cs-fixer fix --dry-run
 ```
 
-## ðŸ”§ Troubleshooting
+## Ã°Å¸â€Â§ Troubleshooting
 
 ### Common Issues
 
@@ -946,37 +946,37 @@ DB::listen(function ($query) {
 $metrics = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class)->collectMetrics();
 ```
 
-## ðŸ“š Additional Resources
+## Ã°Å¸â€œÅ¡ Additional Resources
 
 - **[Examples Directory](examples/)** - Complete working examples
 - **[Test Suite](tests/)** - Comprehensive test coverage
 - **[Configuration Reference](config/redis_sharding.php)** - Full configuration options
 - **[API Documentation](docs/)** - Detailed API reference
 
-## ðŸ†• Changelog
+## Ã°Å¸â€ â€¢ Changelog
 
 ### v2.0.0 (Latest)
 
-- âœ… Added comprehensive testing infrastructure (51 tests)
-- âœ… Enhanced monitoring and observability features
-- âœ… Improved developer experience with new Artisan commands
-- âœ… Added configuration validation and error handling
-- âœ… Performance optimizations with caching and connection pooling
-- âœ… Cross-shard query builder with aggregation support
-- âœ… Real-world examples and best practices documentation
+- Ã¢Å“â€¦ Added comprehensive testing infrastructure (51 tests)
+- Ã¢Å“â€¦ Enhanced monitoring and observability features
+- Ã¢Å“â€¦ Improved developer experience with new Artisan commands
+- Ã¢Å“â€¦ Added configuration validation and error handling
+- Ã¢Å“â€¦ Performance optimizations with caching and connection pooling
+- Ã¢Å“â€¦ Cross-shard query builder with aggregation support
+- Ã¢Å“â€¦ Real-world examples and best practices documentation
 
 ### v1.0.0
 
-- âœ… Basic sharding functionality
-- âœ… Multiple sharding strategies
-- âœ… Redis-based shard location
-- âœ… Laravel integration with service provider
+- Ã¢Å“â€¦ Basic sharding functionality
+- Ã¢Å“â€¦ Multiple sharding strategies
+- Ã¢Å“â€¦ Redis-based shard location
+- Ã¢Å“â€¦ Laravel integration with service provider
 
-## ðŸ“ License
+## Ã°Å¸â€œÂ License
 
 This package is open-sourced software licensed under the [MIT license](LICENSE).
 
-## ðŸ™ Acknowledgments
+## Ã°Å¸â„¢Â Acknowledgments
 
 - Laravel Framework for the excellent foundation
 - Redis for fast key-value storage
