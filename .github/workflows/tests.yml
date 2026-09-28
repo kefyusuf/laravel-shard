@@ -7,9 +7,26 @@ on:
     branches: [ main, develop ]
 
 jobs:
+  composer-validate:
+    runs-on: ubuntu-latest
+    name: Composer Validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
   test:
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       fail-fast: false
       matrix:
@@ -30,13 +47,17 @@ jobs:
           - laravel: 13.*
             testbench: ^11.0
             phpunit: ^12.0
+          - php: 8.3
+            laravel: 11.*
+            testbench: ^9.0
+            phpunit: ^11.5
+            dependency-version: prefer-lowest
         exclude:
           - laravel: 13.*
             php: 8.2
 
     name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }} - ${{ matrix.dependency-version }}
 
-    # Service containers
     services:
       redis:
         image: redis:7-alpine
@@ -81,10 +102,34 @@ jobs:
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_SHARD_MODULE_REDIS: 'true'
+          REDIS_SHARD_MODULE_QUEUE: 'true'
 
-  test-without-redis-module:
+  test-module-matrix:
     runs-on: ubuntu-latest
-    name: No Redis module (PHP 8.4 - Laravel 13)
+    name: Modules redis=${{ matrix.redis }} queue=${{ matrix.queue }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - redis: 'true'
+            queue: 'false'
+          - redis: 'false'
+            queue: 'true'
+          - redis: 'false'
+            queue: 'false'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
 
     steps:
       - name: Checkout code
@@ -94,7 +139,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, redis
           coverage: none
 
       - name: Install dependencies
@@ -102,11 +147,13 @@ jobs:
           composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" "phpunit/phpunit:^12.0" --no-interaction --no-update
           composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction
 
-      - name: Execute tests with redis module disabled
+      - name: Execute tests with module flags
         run: vendor/bin/phpunit --colors=never
         env:
-          REDIS_SHARD_MODULE_REDIS: 'false'
-          REDIS_SHARD_MODULE_QUEUE: 'true'
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_SHARD_MODULE_REDIS: ${{ matrix.redis }}
+          REDIS_SHARD_MODULE_QUEUE: ${{ matrix.queue }}
 
   docker-compose-validation:
     runs-on: ubuntu-latest
