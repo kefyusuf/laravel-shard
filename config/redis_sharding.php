@@ -28,6 +28,21 @@ return [
         'queue' => env('REDIS_SHARD_MODULE_QUEUE', false),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Health / metrics endpoint
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, registers GET {metrics.path} returning a JSON health
+    | snapshot. Protect it with the listed route middleware in production.
+    |
+    */
+    'metrics' => [
+        'enabled' => env('REDIS_SHARD_METRICS', false),
+        'path' => env('REDIS_SHARD_METRICS_PATH', '/shard-health'),
+        'middleware' => ['web'],
+    ],
+
     // Redis connection to use for sharding metadata (redis module only)
     'redis_connection' => env('REDIS_SHARD_CONNECTION', 'default'),
 

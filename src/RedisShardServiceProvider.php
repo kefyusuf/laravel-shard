@@ -17,6 +17,7 @@ use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Database\ShardConnection;
 use Laravel\RedisShard\Locators\ArrayShardLocator;
+use Laravel\RedisShard\Http\ShardHealthController;
 use Laravel\RedisShard\Middleware\ShardRouteMiddleware;
 use Laravel\RedisShard\Modules\QueueModule;
 use Laravel\RedisShard\Queue\RestoreShardContext;
@@ -143,12 +144,29 @@ class RedisShardServiceProvider extends ServiceProvider
 
         $this->app->make('router')->aliasMiddleware('shard', ShardRouteMiddleware::class);
 
+        $this->registerHealthRoute();
+
         /** @var ModuleRegistry $modules */
         $modules = $this->app->make(ModuleRegistry::class);
 
         if ($modules->queue()) {
             (new QueueModule($this->app, $modules))->boot();
         }
+    }
+
+    protected function registerHealthRoute(): void
+    {
+        if (!(bool) config('redis_sharding.metrics.enabled', false)) {
+            return;
+        }
+
+        $path = (string) config('redis_sharding.metrics.path', '/shard-health');
+        $middleware = (array) config('redis_sharding.metrics.middleware', ['web']);
+
+        $this->app->make('router')
+            ->middleware($middleware)
+            ->get($path, ShardHealthController::class)
+            ->name('shard.health');
     }
 
     public function modules(): ModuleRegistry

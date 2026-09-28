@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Unreleased Added
 
+- `ShardHealthReport` — lightweight health snapshot (works without Redis).
+- Optional HTTP health endpoint via `redis_sharding.metrics` (`GET /shard-health` by default).
 - `shard:rebalance --limit=N` for gradual rebalancing; JSON summary includes `remaining_moves`.
 - Dry-run payload includes `limit` / `remaining_if_limited` for scripting.
 - `docs/REBALANCE.md` covering dry-run workflow, idempotent mover semantics, and custom movers.

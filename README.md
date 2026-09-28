@@ -187,6 +187,32 @@ Example:
 ],
 ```
 
+## Health / metrics endpoint
+
+Enable a JSON health probe for load balancers and uptime checks (no Redis required):
+
+```php
+// config/redis_sharding.php
+'metrics' => [
+    'enabled' => env('REDIS_SHARD_METRICS', true),
+    'path' => env('REDIS_SHARD_METRICS_PATH', '/shard-health'),
+    'middleware' => ['web'], // protect in production
+],
+```
+
+```bash
+curl -s https://app.example.com/shard-health
+# {"status":"ok","summary":{"total":2,"up":2,"down":0}, ...}
+```
+
+Status is `ok` (all shards reachable), `degraded` (partial), or `down` (none reachable). Programmatic access:
+
+```php
+use Laravel\RedisShard\Metrics\ShardHealthReport;
+
+$report = app(ShardHealthReport::class)->toArray();
+```
+
 ## 🎯 Quick Start
 
 The steps below match the package consumer smoke test ([`examples/smoke.php`](examples/smoke.php)), which installs this package into a fresh Laravel app on every CI run.
