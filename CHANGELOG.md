@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.0.0] - 2026-09-28
+## [4.0.0] - 2026-09-28
 
-### 3.0.0 Added
+### 4.0.0 Added
 
 - Optional module system: `core` (always on), `redis` (persistent shard map), `queue` (shard-aware jobs) via `redis_sharding.modules`.
 - `ArrayShardLocator` and `NullShardLocator` for Redis-free routing (strategy-only or process-local maps).
@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI job `test-without-redis-module` proving the suite passes with `REDIS_SHARD_MODULE_REDIS=false`.
 - Expanded API, README, and Quick Start guidance for deterministic query routing and locator fallback-store operations.
 
-### 3.0.0 Changed
+### 4.0.0 Changed
 
 - **Breaking:** package name is now `kefyusuf/laravel-shard` (was `yusuf.kef/laravel-redis-shard`).
 - **Breaking:** `illuminate/redis` and `predis/predis` are suggested (optional) dependencies; core routing works without Redis.
@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made shard strategy resolution container-aware for dependency-injected custom strategies.
 - Changed the default sharding strategy to `consistent_hashing` and aligned integration coverage with that default.
 
-### 3.0.0 Fixed
+### 4.0.0 Fixed
 
 - `Shardable` now resolves shard connection during `creating` even when default connection exists.
 - `ShardableBuilder` now falls back to deterministic strategy routing when Redis lookup misses.
@@ -87,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite, MySQL, and PostgreSQL support
 - Comprehensive README with examples
 
-[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/kefyusuf/laravel-shard/releases/tag/v1.0.0
