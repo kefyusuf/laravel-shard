@@ -87,12 +87,15 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Older Laravel majors still carry framework advisories; the package
+          # matrix verifies compatibility, not framework security posture.
+          composer config policy.advisories.block false
           composer require \
             "laravel/framework:${{ matrix.laravel }}" \
             "orchestra/testbench:${{ matrix.testbench }}" \
             "phpunit/phpunit:${{ matrix.phpunit }}" \
-            --no-interaction --no-update
-          composer update --with-all-dependencies --${{ matrix.dependency-version }} --prefer-dist --no-interaction
+            --dev --no-interaction --no-update
+          composer update --with-all-dependencies --${{ matrix.dependency-version }} --prefer-dist --no-interaction --no-audit
 
       - name: List Installed Dependencies
         run: composer show -D
@@ -144,8 +147,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" "phpunit/phpunit:^12.0" --no-interaction --no-update
-          composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction
+          composer config policy.advisories.block false
+          composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" "phpunit/phpunit:^12.0" --dev --no-interaction --no-update
+          composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction --no-audit
 
       - name: Execute tests with module flags
         run: vendor/bin/phpunit --colors=never
@@ -167,7 +171,9 @@ jobs:
         run: PHP_VERSION=8.4 docker compose build app
 
       - name: Install dependencies in Docker
-        run: PHP_VERSION=8.4 docker compose run --rm app composer install --prefer-dist --no-interaction --no-progress
+        run: |
+          PHP_VERSION=8.4 docker compose run --rm app composer config policy.advisories.block false
+          PHP_VERSION=8.4 docker compose run --rm app composer install --prefer-dist --no-interaction --no-progress --no-audit
 
       - name: Execute full test suite in Docker
         run: PHP_VERSION=8.4 docker compose run --rm app vendor/bin/phpunit --colors=never
@@ -184,7 +190,9 @@ jobs:
         run: PHP_VERSION=8.4 docker compose build app
 
       - name: Install dependencies in Docker
-        run: PHP_VERSION=8.4 docker compose run --rm app composer install --prefer-dist --no-interaction --no-progress
+        run: |
+          PHP_VERSION=8.4 docker compose run --rm app composer config policy.advisories.block false
+          PHP_VERSION=8.4 docker compose run --rm app composer install --prefer-dist --no-interaction --no-progress --no-audit
 
       - name: Validate outage behavior
         run: |
