@@ -12,7 +12,23 @@ return [
     |
     */
 
-    // Redis connection to use for sharding metadata
+    /*
+    |--------------------------------------------------------------------------
+    | Optional modules
+    |--------------------------------------------------------------------------
+    |
+    | core   — always on: strategies, ShardManager, Shardable, builders
+    | redis  — Redis-backed persistent key→shard map (ShardLocator)
+    | queue  — shard-aware queued jobs (context serialize/restore)
+    |
+    */
+    'modules' => [
+        'core' => true,
+        'redis' => env('REDIS_SHARD_MODULE_REDIS', true),
+        'queue' => env('REDIS_SHARD_MODULE_QUEUE', false),
+    ],
+
+    // Redis connection to use for sharding metadata (redis module only)
     'redis_connection' => env('REDIS_SHARD_CONNECTION', 'default'),
 
     // Default sharding strategy

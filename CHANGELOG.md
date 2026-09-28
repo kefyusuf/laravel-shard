@@ -9,12 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Unreleased Added
 
+- Optional module system: `core` (always on), `redis` (persistent shard map), `queue` (shard-aware jobs) via `redis_sharding.modules`.
+- `ArrayShardLocator` and `NullShardLocator` for Redis-free routing (strategy-only or process-local maps).
+- Queue module: `ShardContext`, `SerializesShardContext`, `ShardAwareJob`, `RestoreShardContext` job middleware, `ShardContextDispatcher`.
 - Docker-focused validation targets: `test-focused`, `test-docker`, and `test-docker-focused`.
 - A GitHub Actions Docker Compose validation job that runs the full PHPUnit suite against the package's Redis-backed container environment.
 - Expanded API, README, and Quick Start guidance for deterministic query routing and locator fallback-store operations.
 
 ### Unreleased Changed
 
+- `illuminate/redis` and `predis/predis` are now suggested (optional) dependencies; core routing works without Redis.
+- Locator binding is lazy and switches between `RedisShardLocator` (redis module) and `ArrayShardLocator` (default) based on `redis_sharding.modules`.
 - Updated support matrix to Laravel 10.x-13.x and PHP 8.2+.
 - Updated CI matrix to test Laravel 10/11/12/13 against PHP 8.2/8.3/8.4.
 - Made shard strategy resolution container-aware for dependency-injected custom strategies.

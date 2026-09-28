@@ -50,6 +50,7 @@ Desktop.ini
 # Test runtime artifacts
 /tests/tmp/*.json
 /tests/tmp/*.json.lock
+/tests/tmp/*.sqlite
 /tests/tmp/new-shard-*.sqlite
 /tests/tmp/shard-*.sqlite
 

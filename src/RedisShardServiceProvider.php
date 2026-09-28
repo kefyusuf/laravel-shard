@@ -13,23 +13,22 @@ use Laravel\RedisShard\Console\Commands\ShardAnalyzeCommand;
 use Laravel\RedisShard\Console\Commands\ShardCleanupCommand;
 use Laravel\RedisShard\Console\Commands\ShardHealthCommand;
 use Laravel\RedisShard\Console\Commands\ShardStatusCommand;
-use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
+use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Database\ShardConnection;
+use Laravel\RedisShard\Locators\ArrayShardLocator;
 use Laravel\RedisShard\Middleware\ShardRouteMiddleware;
+use Laravel\RedisShard\Modules\QueueModule;
+use Laravel\RedisShard\Queue\RestoreShardContext;
 use Laravel\RedisShard\Rebalance\DatabaseRebalanceDataMover;
 use Laravel\RedisShard\Strategies\ConsistentHashingStrategy;
 use Laravel\RedisShard\Strategies\ModuloStrategy;
 use Laravel\RedisShard\Strategies\RangeBasedStrategy;
+use Laravel\RedisShard\Support\ModuleRegistry;
 use Laravel\RedisShard\Validation\ConfigValidator;
 
 class RedisShardServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     *
-     * @return void
-     */
     public function register(): void
     {
         $this->mergeConfigFrom(
@@ -37,18 +36,34 @@ class RedisShardServiceProvider extends ServiceProvider
             'redis_sharding'
         );
 
-        // Register the ShardLocator
-        $this->app->singleton(ShardLocatorInterface::class, function ($app) {
-            return new ShardLocator(
-                $app->make('redis'),
-                $app->make('config'),
-                $app->make('cache')
-            );
+        // Resolved lazily so environment config (and tests) can enable/disable modules
+        // after provider registration, matching Testbench bootstrap order.
+        $this->app->singleton(ModuleRegistry::class, function ($app) {
+            return ModuleRegistry::fromConfig($app['config']->get('redis_sharding.modules', []));
         });
 
+        $this->registerCore();
+        $this->registerOptionalModules();
+    }
+
+    protected function registerCore(): void
+    {
+        $this->app->singleton(ShardLocatorInterface::class, function ($app) {
+            /** @var ModuleRegistry $modules */
+            $modules = $app->make(ModuleRegistry::class);
+
+            if ($modules->redis() && class_exists(\Illuminate\Redis\RedisManager::class)) {
+                return new \Laravel\RedisShard\Locators\RedisShardLocator(
+                    $app->make('redis'),
+                    $app->make('config'),
+                    $app->make('cache')
+                );
+            }
+
+            return new ArrayShardLocator();
+        });
         $this->app->alias(ShardLocatorInterface::class, 'shard.locator');
 
-        // Register the ShardManager
         $this->app->singleton('shard.manager', function ($app) {
             return new ShardManager(
                 $app->make('config'),
@@ -58,54 +73,42 @@ class RedisShardServiceProvider extends ServiceProvider
             );
         });
 
-        // Register the ShardConnection
         $this->app->singleton('shard.connection', function ($app) {
             return new ShardConnection(
                 $app->make(ConnectionFactory::class)
             );
         });
 
-        // Register the ShardRouteMiddleware
         $this->app->singleton(ShardRouteMiddleware::class, function ($app) {
             return new ShardRouteMiddleware(
                 $app->make(ShardLocatorInterface::class)
             );
         });
 
-        // Register the strategies
-        $this->app->bind(ModuloStrategy::class, function () {
-            return new ModuloStrategy();
-        });
+        $this->app->bind(ModuloStrategy::class, fn () => new ModuloStrategy());
+        $this->app->bind(ConsistentHashingStrategy::class, fn () => new ConsistentHashingStrategy());
+        $this->app->bind(RangeBasedStrategy::class, fn () => new RangeBasedStrategy());
 
-        $this->app->bind(ConsistentHashingStrategy::class, function () {
-            return new ConsistentHashingStrategy();
-        });
-
-        $this->app->bind(RangeBasedStrategy::class, function () {
-            return new RangeBasedStrategy();
-        });
-
-        if ((bool) config('redis_sharding.rebalance.enable_default_data_mover', false)) {
+        if ((bool) $this->app['config']->get('redis_sharding.rebalance.enable_default_data_mover', false)) {
             $this->app->singleton(RebalanceDataMoverInterface::class, function () {
                 return new DatabaseRebalanceDataMover();
             });
         }
     }
 
-    /**
-     * Bootstrap any application services.
-     *
-     * @return void
-     */
+    protected function registerOptionalModules(): void
+    {
+        // Optional modules only add extra bindings; locator choice is lazy in core.
+        $this->app->singleton(RestoreShardContext::class);
+    }
+
     public function boot(): void
     {
-        // Validate configuration (skip in testing)
         if (!$this->app->environment('testing')) {
             try {
                 $config = config('redis_sharding', []);
                 $connections = $config['connections'] ?? [];
 
-                // Allow package installation with empty shard definitions.
                 if (is_array($connections) && !empty($connections)) {
                     ConfigValidator::validate($config);
                 }
@@ -120,12 +123,10 @@ class RedisShardServiceProvider extends ServiceProvider
             }
         }
 
-        // Publish the config file
         $this->publishes([
             __DIR__ . '/../config/redis_sharding.php' => config_path('redis_sharding.php'),
         ], 'config');
 
-        // Register the commands
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CreateShardCommand::class,
@@ -138,10 +139,20 @@ class RedisShardServiceProvider extends ServiceProvider
             ]);
         }
 
-        // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
-        // Register middleware
         $this->app->make('router')->aliasMiddleware('shard', ShardRouteMiddleware::class);
+
+        /** @var ModuleRegistry $modules */
+        $modules = $this->app->make(ModuleRegistry::class);
+
+        if ($modules->queue()) {
+            (new QueueModule($this->app, $modules))->boot();
+        }
+    }
+
+    public function modules(): ModuleRegistry
+    {
+        return $this->app->make(ModuleRegistry::class);
     }
 }

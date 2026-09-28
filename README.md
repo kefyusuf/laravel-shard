@@ -26,8 +26,26 @@ A Redis-backed shard locator for Laravel applications that provides deterministi
 
 - PHP 8.2, 8.3, or 8.4
 - Laravel 10.x, 11.x, 12.x, or 13.x
-- Redis server
 - Multiple database connections configured
+
+### Optional modules
+
+| Module | Default | Needs | Provides |
+| --- | --- | --- | --- |
+| `core` | always on | — | strategies, `Shardable`, builders, CLI |
+| `redis` | on | `predis` + `illuminate/redis` | persistent key→shard map (`RedisShardLocator`) |
+| `queue` | off | `illuminate/queue` | shard-aware jobs (`ShardAwareJob`, `RestoreShardContext`) |
+
+With `redis` disabled the package falls back to `ArrayShardLocator` (process-local map) and deterministic strategy routing. No Redis server is required.
+
+```php
+// config/redis_sharding.php
+'modules' => [
+    'core' => true,
+    'redis' => env('REDIS_SHARD_MODULE_REDIS', true),
+    'queue' => env('REDIS_SHARD_MODULE_QUEUE', false),
+],
+```
 
 ## 📚 Documentation
 
@@ -82,6 +100,13 @@ After publishing the config file, configure your shards in `config/redis_shardin
 
 ```php
 return [
+    // Optional modules — core is always on
+    'modules' => [
+        'core' => true,
+        'redis' => env('REDIS_SHARD_MODULE_REDIS', true), // persistent key→shard map
+        'queue' => env('REDIS_SHARD_MODULE_QUEUE', false), // shard-aware queued jobs
+    ],
+
     'redis_connection' => 'default',
     'default_strategy' => 'consistent_hashing',
 
