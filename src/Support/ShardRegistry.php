@@ -64,7 +64,7 @@ class ShardRegistry
             return is_string($contents) ? $contents : '';
         });
 
-        if (!is_string($contents) || $contents === '') {
+        if ($contents === '') {
             return [];
         }
 
