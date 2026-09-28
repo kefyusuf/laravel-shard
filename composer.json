@@ -1,6 +1,6 @@
 {
-    "name": "yusuf.kef/laravel-redis-shard",
-    "description": "A comprehensive Redis-based database sharding solution for Laravel with automatic data distribution and intelligent routing",
+    "name": "yusuf.kef/laravel-shard",
+    "description": "Modular database sharding for Laravel: deterministic shard routing with optional Redis map and shard-aware queues.",
     "keywords": ["laravel", "redis", "sharding", "database", "scaling", "distributed", "multi-tenant"],
     "type": "library",
     "license": "MIT",

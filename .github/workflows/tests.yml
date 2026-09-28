@@ -82,6 +82,32 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
+  test-without-redis-module:
+    runs-on: ubuntu-latest
+    name: No Redis module (PHP 8.4 - Laravel 13)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" "phpunit/phpunit:^12.0" --no-interaction --no-update
+          composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction
+
+      - name: Execute tests with redis module disabled
+        run: vendor/bin/phpunit --colors=never
+        env:
+          REDIS_SHARD_MODULE_REDIS: 'false'
+          REDIS_SHARD_MODULE_QUEUE: 'true'
+
   docker-compose-validation:
     runs-on: ubuntu-latest
     name: Docker Compose Validation

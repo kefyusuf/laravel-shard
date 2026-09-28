@@ -40,8 +40,8 @@ Enhancement suggestions are welcome! Please provide:
 
 ```bash
 # Clone your fork
-Git clone https://github.com/your-username/laravel-redis-shard.git
-cd laravel-redis-shard
+Git clone https://github.com/your-username/laravel-shard.git
+cd laravel-shard
 
 # Install dependencies
 composer install

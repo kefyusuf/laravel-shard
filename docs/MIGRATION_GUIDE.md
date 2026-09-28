@@ -18,13 +18,13 @@ This guide helps you migrate an existing Laravel application to use Redis-based 
 
 Before migrating, ensure you have:
 
-- ✅ Laravel 10.x, 11.x, 12.x, or 13.x installed
-- ✅ PHP 8.2 or higher
-- ✅ Redis server running and accessible
-- ✅ Multiple database servers configured (or multiple databases on one server)
-- ✅ Full database backup created
-- ✅ Staging environment for testing
-- ✅ A shard key that is available before insert for every sharded model
+- âœ… Laravel 10.x, 11.x, 12.x, or 13.x installed
+- âœ… PHP 8.2 or higher
+- âœ… Redis server running and accessible
+- âœ… Multiple database servers configured (or multiple databases on one server)
+- âœ… Full database backup created
+- âœ… Staging environment for testing
+- âœ… A shard key that is available before insert for every sharded model
 
 ---
 
@@ -33,8 +33,8 @@ Before migrating, ensure you have:
 ### Overview
 
 ```
-[Current Single DB] → [Staging with Sharding] → [Production with Sharding]
-       ↓                       ↓                         ↓
+[Current Single DB] â†’ [Staging with Sharding] â†’ [Production with Sharding]
+       â†“                       â†“                         â†“
    Backup Data         Test Migration              Full Migration
                       Validate Results             Monitor Performance
 ```
@@ -52,7 +52,7 @@ Before migrating, ensure you have:
 ### 1. Install the Package
 
 ```bash
-composer require yusuf.kef/laravel-redis-shard
+composer require yusuf.kef/laravel-shard
 ```
 
 ### 2. Publish Configuration
@@ -202,9 +202,9 @@ foreach (ShardManager::getAvailableShards() as $shard) {
 }
 
 if ($originalCount === $shardedCount) {
-    echo "✅ Migration successful!\n";
+    echo "âœ… Migration successful!\n";
 } else {
-    echo "❌ Migration failed! Original: {$originalCount}, Sharded: {$shardedCount}\n";
+    echo "âŒ Migration failed! Original: {$originalCount}, Sharded: {$shardedCount}\n";
     exit(1);
 }
 
@@ -437,8 +437,8 @@ php artisan shard:rebalance users --strategy=consistent_hashing
 ## Support
 
 For assistance:
-- 📖 [Full Documentation](../README.md)
-- 🐛 [Report Issues](https://github.com/yusuf-kef/laravel-redis-shard/issues)
-- 💬 [Discussions](https://github.com/yusuf-kef/laravel-redis-shard/discussions)
+- ðŸ“– [Full Documentation](../README.md)
+- ðŸ› [Report Issues](https://github.com/kefyusuf/laravel-shard/issues)
+- ðŸ’¬ [Discussions](https://github.com/kefyusuf/laravel-shard/discussions)
 
-Good luck with your migration! 🚀
+Good luck with your migration! ðŸš€

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `laravel-redis-shard` will be documented in this file.
+All notable changes to `laravel-shard` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -83,6 +83,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite, MySQL, and PostgreSQL support
 - Comprehensive README with examples
 
-[Unreleased]: https://github.com/yusuf-kef/laravel-redis-shard/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/yusuf-kef/laravel-redis-shard/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/yusuf-kef/laravel-redis-shard/releases/tag/v1.0.0
+[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/kefyusuf/laravel-shard/releases/tag/v1.0.0

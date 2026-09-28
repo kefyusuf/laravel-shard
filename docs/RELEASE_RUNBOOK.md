@@ -1,12 +1,12 @@
 # Release Runbook (Package + Consumer)
 
-Bu runbook, `yusuf.kef/laravel-redis-shard` package release'lerini
-consumer repo ile birlikte güvenli şekilde kapatmak icin kullanilir.
+Bu runbook, `yusuf.kef/laravel-shard` package release'lerini
+consumer repo ile birlikte gÃ¼venli ÅŸekilde kapatmak icin kullanilir.
 
 ## 1) Package Pre-Release
 
-1. `main` green olmalı (`tests`, `code-quality`).
-2. Consumer PR CI (branch pin) green olmalı.
+1. `main` green olmalÄ± (`tests`, `code-quality`).
+2. Consumer PR CI (branch pin) green olmalÄ±.
 3. `composer.json` version constraint/public API degisiklikleri kontrol edilmeli.
 
 ## 2) Package Release

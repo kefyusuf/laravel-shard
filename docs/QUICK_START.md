@@ -79,7 +79,7 @@ class User extends Model
 }
 ```
 
-## 🎉 You're Done
+## ðŸŽ‰ You're Done
 
 ## Before You Ship
 
@@ -156,16 +156,16 @@ Route::get('/users/{email}', 'UserController@show')
 
 ## Next Steps
 
-- 📖 Read [full documentation](../README.md)
-- 🏗️ See [example application](../examples/ExampleApplication.md)
-- 📚 Browse [API reference](../docs/API.md)
-- 🚀 Check [migration guide](../docs/MIGRATION_GUIDE.md)
-- ⚡ Run [performance benchmarks](../benchmarks/README.md)
+- ðŸ“– Read [full documentation](../README.md)
+- ðŸ—ï¸ See [example application](../examples/ExampleApplication.md)
+- ðŸ“š Browse [API reference](../docs/API.md)
+- ðŸš€ Check [migration guide](../docs/MIGRATION_GUIDE.md)
+- âš¡ Run [performance benchmarks](../benchmarks/README.md)
 
 ## Need Help?
 
-- 🐛 [Report an issue](https://github.com/yusuf-kef/laravel-redis-shard/issues)
-- 💬 [Ask a question](https://github.com/yusuf-kef/laravel-redis-shard/discussions)
-- 📧 [Email support](mailto:kefyusuf@gmail.com)
+- ðŸ› [Report an issue](https://github.com/kefyusuf/laravel-shard/issues)
+- ðŸ’¬ [Ask a question](https://github.com/kefyusuf/laravel-shard/discussions)
+- ðŸ“§ [Email support](mailto:kefyusuf@gmail.com)
 
 **Pro tip:** Run `php artisan shard:health` regularly to monitor your shards!
