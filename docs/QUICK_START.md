@@ -79,7 +79,7 @@ class User extends Model
 }
 ```
 
-## Ã°Å¸Å½â€° You're Done
+## 🎉 You're Done
 
 ## Before You Ship
 
@@ -156,16 +156,16 @@ Route::get('/users/{email}', 'UserController@show')
 
 ## Next Steps
 
-- Ã°Å¸â€œâ€“ Read [full documentation](../README.md)
-- Ã°Å¸Ââ€”Ã¯Â¸Â See [example application](../examples/ExampleApplication.md)
-- Ã°Å¸â€œÅ¡ Browse [API reference](../docs/API.md)
-- Ã°Å¸Å¡â‚¬ Check [migration guide](../docs/MIGRATION_GUIDE.md)
-- Ã¢Å¡Â¡ Run [performance benchmarks](../benchmarks/README.md)
+- 📖 Read [full documentation](../README.md)
+- 🏗️ See [example application](../examples/ExampleApplication.md)
+- 📚 Browse [API reference](../docs/API.md)
+- 🚀 Check [migration guide](../docs/MIGRATION_GUIDE.md)
+- ⚡ Run [performance benchmarks](../benchmarks/README.md)
 
 ## Need Help?
 
-- Ã°Å¸Ââ€º [Report an issue](https://github.com/kefyusuf/laravel-shard/issues)
-- Ã°Å¸â€™Â¬ [Ask a question](https://github.com/kefyusuf/laravel-shard/discussions)
-- Ã°Å¸â€œÂ§ [Email support](mailto:kefyusuf@gmail.com)
+- 🐛 [Report an issue](https://github.com/kefyusuf/laravel-shard/issues)
+- 💬 [Ask a question](https://github.com/kefyusuf/laravel-shard/discussions)
+- 📧 [Email support](mailto:kefyusuf@gmail.com)
 
 **Pro tip:** Run `php artisan shard:health` regularly to monitor your shards!

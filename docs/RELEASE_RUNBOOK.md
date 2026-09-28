@@ -1,12 +1,12 @@
 # Release Runbook (Package + Consumer)
 
 Bu runbook, `kefyusuf/laravel-shard` package release'lerini
-consumer repo ile birlikte gÃƒÂ¼venli Ã…Å¸ekilde kapatmak icin kullanilir.
+consumer repo ile birlikte güvenli şekilde kapatmak icin kullanilir.
 
 ## 1) Package Pre-Release
 
-1. `main` green olmalÃ„Â± (`tests`, `code-quality`).
-2. Consumer PR CI (branch pin) green olmalÃ„Â±.
+1. `main` green olmalı (`tests`, `code-quality`).
+2. Consumer PR CI (branch pin) green olmalı.
 3. `composer.json` version constraint/public API degisiklikleri kontrol edilmeli.
 
 ## 2) Package Release

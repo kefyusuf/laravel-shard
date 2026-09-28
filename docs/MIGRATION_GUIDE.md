@@ -18,13 +18,13 @@ This guide helps you migrate an existing Laravel application to use Redis-based 
 
 Before migrating, ensure you have:
 
-- Ã¢Å“â€¦ Laravel 10.x, 11.x, 12.x, or 13.x installed
-- Ã¢Å“â€¦ PHP 8.2 or higher
-- Ã¢Å“â€¦ Redis server running and accessible
-- Ã¢Å“â€¦ Multiple database servers configured (or multiple databases on one server)
-- Ã¢Å“â€¦ Full database backup created
-- Ã¢Å“â€¦ Staging environment for testing
-- Ã¢Å“â€¦ A shard key that is available before insert for every sharded model
+- ✅ Laravel 10.x, 11.x, 12.x, or 13.x installed
+- ✅ PHP 8.2 or higher
+- ✅ Redis server running and accessible
+- ✅ Multiple database servers configured (or multiple databases on one server)
+- ✅ Full database backup created
+- ✅ Staging environment for testing
+- ✅ A shard key that is available before insert for every sharded model
 
 ---
 
@@ -33,8 +33,8 @@ Before migrating, ensure you have:
 ### Overview
 
 ```
-[Current Single DB] Ã¢â€ â€™ [Staging with Sharding] Ã¢â€ â€™ [Production with Sharding]
-       Ã¢â€ â€œ                       Ã¢â€ â€œ                         Ã¢â€ â€œ
+[Current Single DB] → [Staging with Sharding] → [Production with Sharding]
+       ↓                       ↓                         ↓
    Backup Data         Test Migration              Full Migration
                       Validate Results             Monitor Performance
 ```
@@ -202,9 +202,9 @@ foreach (ShardManager::getAvailableShards() as $shard) {
 }
 
 if ($originalCount === $shardedCount) {
-    echo "Ã¢Å“â€¦ Migration successful!\n";
+    echo "✅ Migration successful!\n";
 } else {
-    echo "Ã¢ÂÅ’ Migration failed! Original: {$originalCount}, Sharded: {$shardedCount}\n";
+    echo "❌ Migration failed! Original: {$originalCount}, Sharded: {$shardedCount}\n";
     exit(1);
 }
 
@@ -437,8 +437,8 @@ php artisan shard:rebalance users --strategy=consistent_hashing
 ## Support
 
 For assistance:
-- Ã°Å¸â€œâ€“ [Full Documentation](../README.md)
-- Ã°Å¸Ââ€º [Report Issues](https://github.com/kefyusuf/laravel-shard/issues)
-- Ã°Å¸â€™Â¬ [Discussions](https://github.com/kefyusuf/laravel-shard/discussions)
+- 📖 [Full Documentation](../README.md)
+- 🐛 [Report Issues](https://github.com/kefyusuf/laravel-shard/issues)
+- 💬 [Discussions](https://github.com/kefyusuf/laravel-shard/discussions)
 
-Good luck with your migration! Ã°Å¸Å¡â‚¬
+Good luck with your migration! 🚀
