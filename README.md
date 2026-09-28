@@ -1,7 +1,7 @@
 # Laravel Shard
 
-[![Tests](https://github.com/kefyusuf/laravel-shard/workflows/Tests/badge.svg)](https://github.com/kefyusuf/laravel-shard/actions)
-[![Code Quality](https://github.com/kefyusuf/laravel-shard/workflows/Code%20Quality/badge.svg)](https://github.com/kefyusuf/laravel-shard/actions)
+[![Tests](https://github.com/kefyusuf/laravel-shard/actions/workflows/tests.yml/badge.svg)](https://github.com/kefyusuf/laravel-shard/actions/workflows/tests.yml)
+[![Code Quality](https://github.com/kefyusuf/laravel-shard/actions/workflows/code-quality.yml/badge.svg)](https://github.com/kefyusuf/laravel-shard/actions/workflows/code-quality.yml)
 [![Latest Stable Version](https://poser.pugx.org/kefyusuf/laravel-shard/v/stable)](https://packagist.org/packages/kefyusuf/laravel-shard)
 [![Total Downloads](https://poser.pugx.org/kefyusuf/laravel-shard/downloads)](https://packagist.org/packages/kefyusuf/laravel-shard)
 [![License](https://poser.pugx.org/kefyusuf/laravel-shard/license)](https://packagist.org/packages/kefyusuf/laravel-shard)
