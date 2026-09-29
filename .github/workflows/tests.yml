@@ -111,7 +111,7 @@ jobs:
             "orchestra/testbench:${{ matrix.testbench }}" \
             "phpunit/phpunit:${{ matrix.phpunit }}" \
             --dev --no-interaction --no-update
-          composer update --with-all-dependencies --${{ matrix.dependency-version }} --prefer-dist --no-interaction --no-audit
+          composer update --with-all-dependencies --${{ matrix.dependency-version }} --prefer-dist --no-interaction
 
       - name: List Installed Dependencies
         run: composer show -D
@@ -165,7 +165,7 @@ jobs:
         run: |
           composer config policy.advisories.block false
           composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" "phpunit/phpunit:^12.0" --dev --no-interaction --no-update
-          composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction --no-audit
+          composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction
 
       - name: Execute tests with module flags
         run: vendor/bin/phpunit --colors=never
@@ -244,7 +244,7 @@ jobs:
         run: |
           composer config policy.advisories.block false
           composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" "phpunit/phpunit:^12.0" --dev --no-interaction --no-update
-          composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction --no-audit
+          composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction
 
       - name: Execute tests with coverage
         run: vendor/bin/phpunit --coverage-text --coverage-clover coverage.xml

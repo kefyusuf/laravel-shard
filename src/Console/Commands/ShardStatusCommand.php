@@ -95,8 +95,8 @@ class ShardStatusCommand extends Command
             $meta = ShardMetadata::where('name', $shardName)->first();
             $data[] = [
                 'Shard' => $shardName,
-                'Status' => $meta?->status ?? 'unknown',
-                'Records' => $meta?->record_count ?? 0,
+                'Status' => $meta->status ?? 'unknown',
+                'Records' => $meta->record_count ?? 0,
                 'Last Rebalanced' => $meta?->last_rebalanced_at?->diffForHumans() ?? 'Never',
                 'Created' => $meta?->created_at?->diffForHumans() ?? 'Unknown',
             ];
@@ -206,8 +206,8 @@ class ShardStatusCommand extends Command
                 'summary' => $this->buildShardSummaryPayload($shardName, $metadata?->status, $metadata?->record_count, $tableData),
                 'shard' => [
                     'name' => $shardName,
-                    'status' => $metadata?->status ?? 'unknown',
-                    'record_count' => $metadata?->record_count ?? 0,
+                    'status' => $metadata->status ?? 'unknown',
+                    'record_count' => $metadata->record_count ?? 0,
                     'created_at' => $metadata?->created_at,
                     'last_rebalanced_at' => $metadata?->last_rebalanced_at,
                 ],
@@ -215,8 +215,8 @@ class ShardStatusCommand extends Command
             ]);
         } else {
             $this->info("Shard: {$shardName}");
-            $this->info("Status: " . ($metadata?->status ?? 'unknown'));
-            $this->info("Record Count: " . ($metadata?->record_count ?? 0));
+            $this->info("Status: " . ($metadata->status ?? 'unknown'));
+            $this->info("Record Count: " . ($metadata->record_count ?? 0));
             $this->info("Created: " . ($metadata?->created_at?->diffForHumans() ?? 'Unknown'));
             $this->info("Last Rebalanced: " . ($metadata?->last_rebalanced_at?->diffForHumans() ?? 'Never'));
 
@@ -243,8 +243,8 @@ class ShardStatusCommand extends Command
             $meta = ShardMetadata::where('name', $shardName)->first();
             $items[] = [
                 'name' => $shardName,
-                'status' => $meta?->status ?? 'unknown',
-                'records' => $meta?->record_count ?? 0,
+                'status' => $meta->status ?? 'unknown',
+                'records' => $meta->record_count ?? 0,
                 'last_rebalanced' => $meta?->last_rebalanced_at?->diffForHumans() ?? 'Never',
                 'created' => $meta?->created_at?->diffForHumans() ?? 'Unknown',
             ];
