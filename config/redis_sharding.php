@@ -43,6 +43,20 @@ return [
         'middleware' => ['web'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Laravel Pulse integration
+    |--------------------------------------------------------------------------
+    |
+    | When Laravel Pulse is installed, the package records the per-request
+    | shard routing distribution (type: shard_request) and registers a
+    | "Shard Usage" dashboard card. Disable to opt out.
+    |
+    */
+    'pulse' => [
+        'enabled' => env('REDIS_SHARD_PULSE', true),
+    ],
+
     // Redis connection to use for sharding metadata (redis module only)
     'redis_connection' => env('REDIS_SHARD_CONNECTION', 'default'),
 

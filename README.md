@@ -22,6 +22,7 @@ A modular shard locator for Laravel applications that provides deterministic sha
 - **Cross-Shard Operations**: Support for cross-shard queries and aggregations
 - **Laravel Integration**: Native Laravel service provider with Artisan commands
 - **Octane Compatible**: Locator state is flushed between Octane worker requests automatically
+- **Laravel Pulse Ready**: Shard routing distribution recorded and visualized on the Pulse dashboard when Pulse is installed
 
 ## 📋 Requirements
 
