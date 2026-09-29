@@ -27,6 +27,23 @@ abstract class TestCase extends Orchestra
         Facade::clearResolvedInstance('shard.manager');
     }
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        // Tests create throwaway sqlite/json fixtures under tests/tmp; wipe
+        // them so the working tree stays clean after a suite run.
+        $tmpDir = __DIR__ . '/tmp';
+
+        if (is_dir($tmpDir)) {
+            foreach (new \FilesystemIterator($tmpDir, \FilesystemIterator::SKIP_DOTS) as $file) {
+                if ($file->isFile()) {
+                    @unlink($file->getPathname());
+                }
+            }
+        }
+    }
+
     protected function getPackageProviders($app): array
     {
         return [
