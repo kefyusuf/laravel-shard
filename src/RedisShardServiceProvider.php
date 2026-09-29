@@ -16,6 +16,7 @@ use Laravel\RedisShard\Console\Commands\ShardReportCommand;
 use Laravel\RedisShard\Console\Commands\ShardStatusCommand;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
+use Laravel\RedisShard\Exceptions\ConfigurationException;
 use Laravel\RedisShard\Database\ShardConnection;
 use Laravel\RedisShard\Locators\ArrayShardLocator;
 use Laravel\RedisShard\Http\ShardHealthController;
@@ -106,23 +107,24 @@ class RedisShardServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        if (!$this->app->environment('testing')) {
-            try {
-                $config = config('redis_sharding', []);
-                $connections = $config['connections'] ?? [];
+        // Validation runs in every environment, including testing: config bugs
+        // caught here must not silently ship to consumer CI runs. Only the
+        // strict_validation flag decides whether a bad config throws or warns.
+        try {
+            $config = config('redis_sharding', []);
+            $connections = $config['connections'] ?? [];
 
-                if (is_array($connections) && !empty($connections)) {
-                    ConfigValidator::validate($config);
-                }
-            } catch (\Laravel\RedisShard\Exceptions\ConfigurationException $e) {
-                $strictValidation = (bool) config('redis_sharding.strict_validation', true);
-
-                if ($strictValidation) {
-                    throw $e;
-                }
-
-                logger()->warning('Redis Sharding Configuration Error: ' . $e->getMessage());
+            if (is_array($connections) && !empty($connections)) {
+                ConfigValidator::validate($config);
             }
+        } catch (ConfigurationException $e) {
+            $strictValidation = (bool) config('redis_sharding.strict_validation', true);
+
+            if ($strictValidation) {
+                throw $e;
+            }
+
+            logger()->warning('Redis Sharding Configuration Error: ' . $e->getMessage());
         }
 
         $this->publishes([
