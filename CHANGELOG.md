@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Virtual bucket sharding**: new `virtual_bucket` strategy — a key hashes into a fixed bucket (`crc32 % N`, default 1024) and a persistent bucket→shard map (in the shard registry) decides placement. Adding/removing shards never moves buckets implicitly; `shard:bucket` assigns a bucket, `shard:bucket-status` shows the distribution, and `shard:rebalance` moves only the keys of moved buckets. Legacy registry files keep working.
 - **Cross-shard transactions**: `ShardManager::transaction(array $shards, Closure $callback)` opens a transaction on every shard, rolls all back when the callback throws, and commits in begin order with best-effort semantics (documented; not a distributed 2PC). See `docs/TRANSACTIONS.md`.
 
 ## [4.2.0] - 2026-09-29

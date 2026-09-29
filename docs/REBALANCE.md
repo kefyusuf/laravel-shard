@@ -66,6 +66,27 @@ by a rebalance.
 
 Disable with `REDIS_SHARD_REBALANCE_FENCE=false` (not recommended).
 
+## Virtual buckets
+
+With the `virtual_bucket` strategy a key always hashes into a **fixed bucket**
+(`crc32(table:key) % N`, N configurable via `redis_sharding.virtual_buckets.count`,
+default 1024), and a persistent **bucket → shard** map (stored in the shard
+registry) decides where each bucket lives. Buckets are assigned on first touch
+and never move implicitly when shards are added or removed — operators move
+buckets explicitly:
+
+```bash
+php artisan shard:bucket-status          # buckets per shard, unassigned count
+php artisan shard:bucket 512 shard2      # assign bucket 512 to shard2
+php artisan shard:rebalance users        # moves only the keys of bucket 512
+```
+
+Because the rebalance planner relocates exactly the keys whose resolved shard
+differs from the current placement, moving one bucket out of N touches only
+~1/N of the keys — instead of the ~half the keys a consistent-hashing ring
+rehash typically displaces. The bucket map is versioned inside the shard
+registry file; legacy registry files keep working.
+
 ## Custom movers
 
 Bind your own implementation when you need chunking, throttling, or hooks:

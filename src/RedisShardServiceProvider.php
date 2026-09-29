@@ -10,6 +10,8 @@ use Laravel\RedisShard\Console\Commands\CreateShardCommand;
 use Laravel\RedisShard\Console\Commands\InstallCommand;
 use Laravel\RedisShard\Console\Commands\RebalanceShardCommand;
 use Laravel\RedisShard\Console\Commands\ShardAnalyzeCommand;
+use Laravel\RedisShard\Console\Commands\ShardBucketCommand;
+use Laravel\RedisShard\Console\Commands\ShardBucketStatusCommand;
 use Laravel\RedisShard\Console\Commands\ShardCleanupCommand;
 use Laravel\RedisShard\Console\Commands\ShardHealthCommand;
 use Laravel\RedisShard\Console\Commands\ShardReportCommand;
@@ -97,6 +99,7 @@ class RedisShardServiceProvider extends ServiceProvider
         $this->app->bind(ModuloStrategy::class, fn () => new ModuloStrategy());
         $this->app->bind(ConsistentHashingStrategy::class, fn () => new ConsistentHashingStrategy());
         $this->app->bind(RangeBasedStrategy::class, fn () => new RangeBasedStrategy());
+        $this->app->bind(\Laravel\RedisShard\Strategies\VirtualBucketStrategy::class, fn () => new \Laravel\RedisShard\Strategies\VirtualBucketStrategy());
 
         if ((bool) $this->app['config']->get('redis_sharding.rebalance.enable_default_data_mover', false)) {
             $this->app->singleton(RebalanceDataMoverInterface::class, function () {
@@ -147,6 +150,8 @@ class RedisShardServiceProvider extends ServiceProvider
                 ShardReportCommand::class,
                 ShardAnalyzeCommand::class,
                 ShardCleanupCommand::class,
+                ShardBucketStatusCommand::class,
+                ShardBucketCommand::class,
             ]);
         }
 
