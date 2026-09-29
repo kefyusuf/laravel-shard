@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **ShardableBuilder deepened** (internal, no behavior change): routing-plan inference extracted into a pure `Database\ShardRoutingPlan` module (unit-testable without a database) and pinned-connection mechanics into `Database\ShardExecutor`; the builder's overrides now delegate to them.
+
 ### Removed (BC break)
 
 - `Laravel\RedisShard\Database\ConnectionPool` (deprecated in 4.2.0, never wired) and `Laravel\RedisShard\Modules\RedisModule` (deprecated in 4.2.0, never instantiated) are deleted; both had zero callers.
