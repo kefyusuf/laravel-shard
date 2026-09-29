@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-09-29
+
 ### Added
 
 - **Read replica routing**: map shard connections to read replicas in `redis_sharding.read_replicas.connections`; read operations of the shard-aware builder (find, findMany, first, get, count, exists, pluck, paginate, chunk, cursor) target the replica while writes always stay on the shard connection. Unmapped shards read from the shard itself.
