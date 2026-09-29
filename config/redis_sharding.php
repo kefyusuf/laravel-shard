@@ -83,6 +83,13 @@ return [
         'modulo' => Laravel\RedisShard\Strategies\ModuloStrategy::class,
         'consistent_hashing' => Laravel\RedisShard\Strategies\ConsistentHashingStrategy::class,
         'range_based' => Laravel\RedisShard\Strategies\RangeBasedStrategy::class,
+        'virtual_bucket' => Laravel\RedisShard\Strategies\VirtualBucketStrategy::class,
+    ],
+
+    // Virtual bucket sharding: fixed bucket count, bucket-to-shard assignments
+    // persisted in the shard registry (see docs/REBALANCE.md).
+    'virtual_buckets' => [
+        'count' => env('REDIS_SHARD_VBUCKETS', 1024),
     ],
 
     // Database connections for shards

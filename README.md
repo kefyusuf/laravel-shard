@@ -13,7 +13,7 @@ A modular shard locator for Laravel applications that provides deterministic sha
 
 - **Deterministic Shard Routing**: Route shard-key-aware reads and writes to the correct shard
 - **Redis-Based Lookup**: Persistent key-to-shard mappings stored in Redis
-- **Multiple Strategies**: Support for Modulo, Consistent Hashing, and Range-based sharding
+- **Multiple Strategies**: Support for Modulo, Consistent Hashing, Range-based, and Virtual Bucket sharding
 - **Request Routing**: Route middleware and shard-aware builders for single-shard operations
 - **Model Integration**: Easy integration using the `Shardable` trait
 - **Performance Monitoring**: Built-in monitoring and health checks

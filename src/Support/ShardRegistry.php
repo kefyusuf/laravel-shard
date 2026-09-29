@@ -6,12 +6,60 @@ namespace Laravel\RedisShard\Support;
 
 class ShardRegistry
 {
+    protected const FILE_VERSION = 2;
+
     /**
      * Persist all shard connection definitions.
      *
      * @param array<string, array<string, mixed>> $connections
      */
     public static function writeAll(array $connections): void
+    {
+        static::writeDocument($connections, static::readBucketMap());
+    }
+
+    /**
+     * Persist the virtual-bucket to shard mapping, preserving connections.
+     *
+     * @param array<int, string> $map bucket number => shard connection
+     */
+    public static function writeBucketMap(array $map): void
+    {
+        static::writeDocument(static::readAll(), $map);
+    }
+
+    /**
+     * Read all persisted shard connection definitions.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function readAll(): array
+    {
+        return static::readDocument()['connections'];
+    }
+
+    /**
+     * @return array<int, string> bucket number => shard connection
+     */
+    public static function readBucketMap(): array
+    {
+        $document = static::readDocument();
+
+        $map = [];
+        foreach ($document['buckets'] as $bucket => $shard) {
+            if (is_string($shard) && $shard !== '') {
+                $map[(int) $bucket] = $shard;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $connections
+     * @param array<int, string> $buckets
+     */
+    protected static function writeDocument(array $connections, array $buckets): void
     {
         $path = static::resolvePath();
         $directory = dirname($path);
@@ -22,7 +70,11 @@ class ShardRegistry
             @chmod($directory, 0700);
         }
 
-        $payload = json_encode($connections, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        $payload = json_encode([
+            'version' => static::FILE_VERSION,
+            'connections' => $connections,
+            'buckets' => $buckets,
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if (! is_string($payload)) {
             throw new \RuntimeException('Failed to encode shard registry payload.');
         }
@@ -49,14 +101,14 @@ class ShardRegistry
     }
 
     /**
-     * @return array<string, array<string, mixed>>
+     * @return array{connections: array<string, array<string, mixed>>, buckets: array<string, mixed>}
      */
-    public static function readAll(): array
+    protected static function readDocument(): array
     {
         $path = static::resolvePath();
 
         if (! is_file($path)) {
-            return [];
+            return ['connections' => [], 'buckets' => []];
         }
 
         $contents = static::withFileLock($path, LOCK_SH, function () use ($path): string {
@@ -66,15 +118,27 @@ class ShardRegistry
         });
 
         if ($contents === '') {
-            return [];
+            return ['connections' => [], 'buckets' => []];
         }
 
         $decoded = json_decode($contents, true);
         if (! is_array($decoded)) {
-            return [];
+            return ['connections' => [], 'buckets' => []];
         }
 
-        return array_filter($decoded, 'is_array');
+        // Version 2 documents carry connections and the bucket map together;
+        // legacy files hold the connection map directly.
+        if (($decoded['version'] ?? null) === static::FILE_VERSION) {
+            $connections = is_array($decoded['connections'] ?? null) ? $decoded['connections'] : [];
+            $buckets = is_array($decoded['buckets'] ?? null) ? $decoded['buckets'] : [];
+
+            return [
+                'connections' => array_filter($connections, 'is_array'),
+                'buckets' => $buckets,
+            ];
+        }
+
+        return ['connections' => array_filter($decoded, 'is_array'), 'buckets' => []];
     }
 
     /**
