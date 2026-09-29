@@ -21,6 +21,7 @@ use Laravel\RedisShard\Exceptions\ConfigurationException;
 use Laravel\RedisShard\Http\ShardHealthController;
 use Laravel\RedisShard\Listeners\FlushShardState;
 use Laravel\RedisShard\Locators\ArrayShardLocator;
+use Laravel\RedisShard\Metrics\Pulse\RequestShardUsage;
 use Laravel\RedisShard\Middleware\ShardRouteMiddleware;
 use Laravel\RedisShard\Modules\QueueModule;
 use Laravel\RedisShard\Queue\RestoreShardContext;
@@ -52,6 +53,8 @@ class RedisShardServiceProvider extends ServiceProvider
 
     protected function registerCore(): void
     {
+        $this->app->singleton(RequestShardUsage::class);
+
         $this->app->singleton(ShardLocatorInterface::class, function ($app) {
             /** @var ModuleRegistry $modules */
             $modules = $app->make(ModuleRegistry::class);
@@ -73,7 +76,8 @@ class RedisShardServiceProvider extends ServiceProvider
                 $app->make('config'),
                 $app->make('db'),
                 $app->make(ShardLocatorInterface::class),
-                $app
+                $app,
+                $app->make(RequestShardUsage::class)
             );
         });
 
@@ -146,6 +150,9 @@ class RedisShardServiceProvider extends ServiceProvider
         }
 
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'redis-shard');
+
+        $this->registerPulseIntegration();
 
         $this->app->make('router')->aliasMiddleware('shard', ShardRouteMiddleware::class);
 
@@ -160,6 +167,27 @@ class RedisShardServiceProvider extends ServiceProvider
         if ($modules->queue()) {
             (new QueueModule($this->app, $modules))->boot();
         }
+    }
+
+    protected function registerPulseIntegration(): void
+    {
+        if (! class_exists(\Laravel\Pulse\Pulse::class)
+            || ! (bool) config('pulse.enabled', false)
+            || ! (bool) config('redis_sharding.pulse.enabled', true)) {
+            return;
+        }
+
+        // Deferred so both Pulse and Livewire are fully booted, regardless of
+        // package provider boot order.
+        $this->app->afterResolving('livewire', function (): void {
+            \Livewire\Livewire::component('redis-shard.shard-usage', \Laravel\RedisShard\Metrics\Pulse\ShardUsageCard::class);
+        });
+
+        $this->app->afterResolving(\Laravel\Pulse\Pulse::class, function (\Laravel\Pulse\Pulse $pulse): void {
+            $pulse->register([
+                \Laravel\RedisShard\Metrics\Pulse\ShardUsageRecorder::class => ['enabled' => true],
+            ]);
+        });
     }
 
     protected function registerOctaneStateFlush(): void

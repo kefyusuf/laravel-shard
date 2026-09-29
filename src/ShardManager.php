@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Contracts\ShardStrategyInterface;
 use Laravel\RedisShard\Exceptions\ShardingException;
+use Laravel\RedisShard\Metrics\Pulse\RequestShardUsage;
 use Laravel\RedisShard\Models\ShardMetadata;
 use Laravel\RedisShard\Support\ShardRegistry;
 
@@ -37,7 +38,8 @@ class ShardManager
         protected Repository $config,
         protected DatabaseManager $db,
         protected ShardLocatorInterface $locator,
-        protected ?Container $container = null
+        protected ?Container $container = null,
+        protected ?RequestShardUsage $usage = null
     ) {
         $this->hydrateConnectionsFromRegistry();
         $this->registerStrategies();
@@ -106,25 +108,25 @@ class ShardManager
         // Check if the key is already assigned to a shard
         $shardConnection = $this->locator->locate($table, $key);
 
-        if ($shardConnection !== null) {
-            return $shardConnection;
+        if ($shardConnection === null) {
+            // If not, determine which shard to use
+            $availableShards = $this->getAvailableShards();
+
+            if (empty($availableShards)) {
+                throw new ShardingException('No available shards found');
+            }
+
+            if ($this->defaultStrategy === null) {
+                throw new ShardingException('No default sharding strategy configured');
+            }
+
+            $shardConnection = $this->defaultStrategy->determine($table, $key, $availableShards);
+
+            // Register the key to the selected shard
+            $this->locator->register($table, $key, $shardConnection);
         }
 
-        // If not, determine which shard to use
-        $availableShards = $this->getAvailableShards();
-
-        if (empty($availableShards)) {
-            throw new ShardingException('No available shards found');
-        }
-
-        if ($this->defaultStrategy === null) {
-            throw new ShardingException('No default sharding strategy configured');
-        }
-
-        $shardConnection = $this->defaultStrategy->determine($table, $key, $availableShards);
-
-        // Register the key to the selected shard
-        $this->locator->register($table, $key, $shardConnection);
+        $this->usage?->record($shardConnection);
 
         return $shardConnection;
     }

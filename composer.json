@@ -22,7 +22,8 @@
         "phpstan/phpstan": "^2.0",
         "predis/predis": "^2.0",
         "illuminate/redis": "^10.0|^11.0|^12.0|^13.0",
-        "illuminate/queue": "^10.0|^11.0|^12.0|^13.0"
+        "illuminate/queue": "^10.0|^11.0|^12.0|^13.0",
+        "laravel/pulse": "^1.8"
     },
     "suggest": {
         "predis/predis": "Required when the redis module is enabled (persistent shard map)",
