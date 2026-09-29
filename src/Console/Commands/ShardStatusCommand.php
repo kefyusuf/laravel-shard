@@ -89,11 +89,10 @@ class ShardStatusCommand extends Command
     protected function showOverallStatus(ShardLocatorInterface $locator, string $format): int
     {
         $shards = ShardManager::getAvailableShards();
-        $metadata = ShardMetadata::all()->keyBy('name');
 
         $data = [];
         foreach ($shards as $shardName) {
-            $meta = $metadata->get($shardName);
+            $meta = ShardMetadata::where('name', $shardName)->first();
             $data[] = [
                 'Shard' => $shardName,
                 'Status' => $meta?->status ?? 'unknown',
@@ -104,7 +103,7 @@ class ShardStatusCommand extends Command
         }
 
         if ($format === 'json') {
-            $this->emitJson($this->buildOverallPayload($shards, $metadata));
+            $this->emitJson($this->buildOverallPayload($shards));
         } else {
             $this->table(['Shard', 'Status', 'Records', 'Last Rebalanced', 'Created'], $data);
             $defaultStrategy = $this->resolveDefaultStrategyName();
@@ -233,12 +232,15 @@ class ShardStatusCommand extends Command
 
     /**
      * Build payload for overall status in JSON mode.
+     *
+     * @param array<string> $shards
+     * @return array<string, mixed>
      */
-    protected function buildOverallPayload(array $shards, \Illuminate\Support\Collection $metadata): array
+    protected function buildOverallPayload(array $shards): array
     {
         $items = [];
         foreach ($shards as $shardName) {
-            $meta = $metadata->get($shardName);
+            $meta = ShardMetadata::where('name', $shardName)->first();
             $items[] = [
                 'name' => $shardName,
                 'status' => $meta?->status ?? 'unknown',

@@ -69,6 +69,10 @@ class ShardDiagnosticReportTest extends TestCase
 
     public function test_shard_report_command_json(): void
     {
+        // RefreshDatabase's artisan() call leaves a mocked OutputStyle bound in
+        // the container on Laravel 10, which swallows Artisan::call output.
+        $this->withoutMockingConsoleOutput();
+
         $this->seedShards();
 
         $exit = Artisan::call('shard:report', ['--format' => 'json']);

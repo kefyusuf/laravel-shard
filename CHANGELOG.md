@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Laravel\RedisShard\Modules\QueueModule::register()` — never invoked; the provider binds `RestoreShardContext` itself. Boot-only in 5.0.
 - The `redis_sharding.auto_provisioning` config keys (`enabled`, `max_shards`, `threshold`) are marked **reserved and inert**: no auto-provisioner is wired yet. They are kept for forward compatibility and still validated by `ConfigValidator`.
 
+### Fixed
+
+- `shard:rebalance --dry-run --format=json --limit=N` and `shard:report --format=json` now emit valid JSON on Laravel 10 when run through `Artisan::call()`: RefreshDatabase's `artisan()` helper leaves a mocked `OutputStyle` bound in the container on Laravel 10, which swallowed command output. Affected tests now use `withoutMockingConsoleOutput()`.
+- `ShardStatusCommand` no longer relies on `Collection::get()` non-null inference: per-shard metadata is fetched with `where('name')->first()`, keeping the `unknown`/`0` fallbacks correct when a shard has no metadata row.
+- The empty-`uniqueBy` upsert regression test is skipped below Laravel 13, where the framework does not reject an empty `uniqueBy`.
+
 ## [4.1.0] - 2026-09-28
 
 ### 4.1.0 Added

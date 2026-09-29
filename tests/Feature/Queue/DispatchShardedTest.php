@@ -113,6 +113,12 @@ class DispatchShardedTest extends TestCase
 
     public function test_upsert_with_empty_unique_by_fails_fast_before_writing_to_any_shard(): void
     {
+        // Laravel 13 rejects an empty uniqueBy with InvalidArgumentException;
+        // on older majors the write proceeds, so the guarantee below only holds here.
+        if (version_compare(app()->version(), '13.0', '<')) {
+            $this->markTestSkipped('Empty-uniqueBy rejection is a Laravel 13 behavior.');
+        }
+
         $shard1 = $this->prepareShardDatabase('upsert-empty-uniqueby-a');
         $shard2 = $this->prepareShardDatabase('upsert-empty-uniqueby-b');
 

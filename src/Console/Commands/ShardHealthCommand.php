@@ -364,7 +364,7 @@ class ShardHealthCommand extends Command
                     case 'imbalance':
                         if (isset($issue['fix_command'])) {
                             $parts = explode(' ', (string) $issue['fix_command'], 2);
-                            $commandName = $parts[0] ?? '';
+                            $commandName = $parts[0];
                             $table = $parts[1] ?? null;
 
                             if ($commandName !== '') {
