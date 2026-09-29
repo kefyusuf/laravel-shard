@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Cross-shard transactions**: `ShardManager::transaction(array $shards, Closure $callback)` opens a transaction on every shard, rolls all back when the callback throws, and commits in begin order with best-effort semantics (documented; not a distributed 2PC). See `docs/TRANSACTIONS.md`.
+
 ## [4.2.0] - 2026-09-29
 
 ### Added

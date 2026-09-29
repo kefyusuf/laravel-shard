@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard;
 
+use Closure;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\DatabaseManager;
@@ -152,6 +153,76 @@ class ShardManager
             : new \Laravel\RedisShard\Database\ReadReplicaResolver($this->config);
 
         return $resolver->resolve($shardConnection);
+    }
+
+    /**
+     * Run a callback inside a transaction opened on every given shard.
+     *
+     * This is best-effort coordination, not a distributed two-phase commit:
+     * all shards either reach the callback or none do, and a callback
+     * failure rolls back every shard — but if a COMMIT itself fails midway,
+     * the shards committed before it stay committed. Design writes to be
+     * reconcilable (see docs/TRANSACTIONS.md).
+     *
+     * @param array<string> $shardConnections
+     * @param Closure(): mixed $callback
+     * @return mixed the callback result
+     * @throws ShardingException when no shard is given or a shard cannot begin
+     */
+    public function transaction(array $shardConnections, Closure $callback): mixed
+    {
+        $connections = array_values(array_unique($shardConnections));
+
+        if ($connections === []) {
+            throw new ShardingException('Cross-shard transactions require at least one shard connection.');
+        }
+
+        $begun = [];
+
+        try {
+            foreach ($connections as $connection) {
+                $this->db->connection($connection)->beginTransaction();
+                $begun[] = $connection;
+            }
+        } catch (\Throwable $e) {
+            foreach (array_reverse($begun) as $connection) {
+                $this->db->connection($connection)->rollBack();
+            }
+
+            throw new ShardingException(sprintf(
+                'Cross-shard transaction could not begin on "%s": %s',
+                end($connections),
+                $e->getMessage()
+            ), 0, $e);
+        }
+
+        try {
+            $result = $callback();
+        } catch (\Throwable $e) {
+            foreach (array_reverse($begun) as $connection) {
+                $this->db->connection($connection)->rollBack();
+            }
+
+            throw $e;
+        }
+
+        foreach ($begun as $index => $connection) {
+            try {
+                $this->db->connection($connection)->commit();
+            } catch (\Throwable $e) {
+                foreach (array_slice($begun, $index + 1) as $remaining) {
+                    $this->db->connection($remaining)->rollBack();
+                }
+
+                throw new ShardingException(sprintf(
+                    'Cross-shard transaction commit failed on "%s"; earlier shards are already committed: %s',
+                    $connection,
+                    $e->getMessage()
+                ), 0, $e);
+            }
+        }
+
+        return $result;
     }
 
     /**
