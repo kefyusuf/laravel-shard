@@ -89,22 +89,21 @@ class ShardStatusCommand extends Command
     protected function showOverallStatus(ShardLocatorInterface $locator, string $format): int
     {
         $shards = ShardManager::getAvailableShards();
-        $metadata = ShardMetadata::all()->keyBy('name');
 
         $data = [];
         foreach ($shards as $shardName) {
-            $meta = $metadata->get($shardName);
+            $meta = ShardMetadata::where('name', $shardName)->first();
             $data[] = [
                 'Shard' => $shardName,
-                'Status' => $meta?->status ?? 'unknown',
-                'Records' => $meta?->record_count ?? 0,
+                'Status' => $meta->status ?? 'unknown',
+                'Records' => $meta->record_count ?? 0,
                 'Last Rebalanced' => $meta?->last_rebalanced_at?->diffForHumans() ?? 'Never',
                 'Created' => $meta?->created_at?->diffForHumans() ?? 'Unknown',
             ];
         }
 
         if ($format === 'json') {
-            $this->emitJson($this->buildOverallPayload($shards, $metadata));
+            $this->emitJson($this->buildOverallPayload($shards));
         } else {
             $this->table(['Shard', 'Status', 'Records', 'Last Rebalanced', 'Created'], $data);
             $defaultStrategy = $this->resolveDefaultStrategyName();
@@ -207,8 +206,8 @@ class ShardStatusCommand extends Command
                 'summary' => $this->buildShardSummaryPayload($shardName, $metadata?->status, $metadata?->record_count, $tableData),
                 'shard' => [
                     'name' => $shardName,
-                    'status' => $metadata?->status ?? 'unknown',
-                    'record_count' => $metadata?->record_count ?? 0,
+                    'status' => $metadata->status ?? 'unknown',
+                    'record_count' => $metadata->record_count ?? 0,
                     'created_at' => $metadata?->created_at,
                     'last_rebalanced_at' => $metadata?->last_rebalanced_at,
                 ],
@@ -216,8 +215,8 @@ class ShardStatusCommand extends Command
             ]);
         } else {
             $this->info("Shard: {$shardName}");
-            $this->info("Status: " . ($metadata?->status ?? 'unknown'));
-            $this->info("Record Count: " . ($metadata?->record_count ?? 0));
+            $this->info("Status: " . ($metadata->status ?? 'unknown'));
+            $this->info("Record Count: " . ($metadata->record_count ?? 0));
             $this->info("Created: " . ($metadata?->created_at?->diffForHumans() ?? 'Unknown'));
             $this->info("Last Rebalanced: " . ($metadata?->last_rebalanced_at?->diffForHumans() ?? 'Never'));
 
@@ -233,16 +232,19 @@ class ShardStatusCommand extends Command
 
     /**
      * Build payload for overall status in JSON mode.
+     *
+     * @param array<string> $shards
+     * @return array<string, mixed>
      */
-    protected function buildOverallPayload(array $shards, \Illuminate\Support\Collection $metadata): array
+    protected function buildOverallPayload(array $shards): array
     {
         $items = [];
         foreach ($shards as $shardName) {
-            $meta = $metadata->get($shardName);
+            $meta = ShardMetadata::where('name', $shardName)->first();
             $items[] = [
                 'name' => $shardName,
-                'status' => $meta?->status ?? 'unknown',
-                'records' => $meta?->record_count ?? 0,
+                'status' => $meta->status ?? 'unknown',
+                'records' => $meta->record_count ?? 0,
                 'last_rebalanced' => $meta?->last_rebalanced_at?->diffForHumans() ?? 'Never',
                 'created' => $meta?->created_at?->diffForHumans() ?? 'Unknown',
             ];

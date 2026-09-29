@@ -68,14 +68,9 @@ jobs:
       - name: Install dependencies
         run: |
           composer config policy.advisories.block false
-          if [[ -f composer.lock ]]; then
-            composer install --prefer-dist --no-interaction --no-progress --no-audit || {
-              echo "composer.lock is not in sync with composer.json, falling back to composer update"
-              composer update --prefer-dist --no-interaction --no-progress --no-audit
-            }
-          else
-            composer update --prefer-dist --no-interaction --no-progress --no-audit
-          fi
+          # --no-audit was removed in Composer 2.10; a failing install here
+          # would silently fall back to composer update and drift versions.
+          composer install --prefer-dist --no-interaction --no-progress
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --memory-limit=1G --error-format=github

@@ -347,6 +347,10 @@ class RebalanceShardCommandTest extends TestCase
 
     public function test_dry_run_payload_reports_limit(): void
     {
+        // RefreshDatabase's artisan() call leaves a mocked OutputStyle bound in
+        // the container on Laravel 10, which swallows Artisan::call output.
+        $this->withoutMockingConsoleOutput();
+
         $this->prepareDeterministicRebalanceEnvironment();
 
         $locator = new class () implements ShardLocatorInterface {
@@ -393,14 +397,15 @@ class RebalanceShardCommandTest extends TestCase
         $this->app->instance('shard.locator', $locator);
         Facade::clearResolvedInstance('shard.manager');
 
-        Artisan::call('shard:rebalance', [
+        $exitCode = Artisan::call('shard:rebalance', [
             'table' => 'users',
             '--dry-run' => true,
             '--format' => 'json',
             '--limit' => 1,
         ]);
+        $raw = Artisan::output();
 
-        $payload = json_decode(Artisan::output(), true);
+        $payload = json_decode($raw, true);
         $this->assertIsArray($payload);
         $this->assertSame(1, $payload['summary']['limit'] ?? null);
         $this->assertArrayHasKey('remaining_if_limited', $payload['summary']);
