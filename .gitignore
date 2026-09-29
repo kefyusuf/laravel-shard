@@ -62,3 +62,6 @@ Desktop.ini
 
 # Browser automation artifacts
 /.playwright-mcp/
+
+# Mimosa security plugin artifacts
+/.mimosa/
