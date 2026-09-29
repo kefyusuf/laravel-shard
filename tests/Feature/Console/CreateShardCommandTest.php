@@ -62,7 +62,7 @@ class CreateShardCommandTest extends TestCase
         ])
         ->expectsOutput('Shard "test_shard" created successfully!')
         ->assertExitCode(0);
-        
+
         // Verify metadata was created
         $metadata = ShardMetadata::where('name', 'test_shard')->first();
         $this->assertNotNull($metadata);
@@ -88,7 +88,7 @@ class CreateShardCommandTest extends TestCase
             '--password' => '',
             '--skip-migrate' => true,
         ])->assertExitCode(0);
-        
+
         // Try to create duplicate
         $this->artisan('shard:create', [
             'name' => 'duplicate_shard',
@@ -134,7 +134,7 @@ class CreateShardCommandTest extends TestCase
         ])
         ->expectsOutput('Shard "sqlite_shard_custom_driver" created successfully!')
         ->assertExitCode(0);
-        
+
         $metadata = ShardMetadata::where('name', 'sqlite_shard_custom_driver')->first();
         $this->assertNotNull($metadata);
     }

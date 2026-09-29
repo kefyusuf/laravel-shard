@@ -14,11 +14,11 @@ class HealthRegistrar
 {
     public static function register(): void
     {
-        if (!class_exists(Health::class)) {
+        if (! class_exists(Health::class)) {
             return;
         }
 
-        if (!class_exists(\Illuminate\Health\Checks\Check::class)) {
+        if (! class_exists(\Illuminate\Health\Checks\Check::class)) {
             return;
         }
 

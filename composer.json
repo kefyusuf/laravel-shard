@@ -47,7 +47,7 @@
         "test-coverage": "phpunit --coverage-html coverage",
         "lint": "php-cs-fixer fix --dry-run --diff",
         "lint-fix": "php-cs-fixer fix",
-        "analyse": "phpstan analyse",
+        "analyse": "phpstan analyse --memory-limit=1G",
         "check": [
             "@lint",
             "@analyse",

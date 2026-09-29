@@ -109,6 +109,7 @@ abstract class TestCase extends Orchestra
     {
         try {
             $this->app->make('redis')->connection()->command('ping');
+
             return true;
         } catch (\Exception $e) {
             return false;
@@ -122,7 +123,7 @@ abstract class TestCase extends Orchestra
      */
     protected function skipIfRedisNotAvailable(): void
     {
-        if (!$this->isRedisAvailable()) {
+        if (! $this->isRedisAvailable()) {
             $this->markTestSkipped('Redis is not available for this test.');
         }
     }

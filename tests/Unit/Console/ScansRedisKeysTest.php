@@ -11,7 +11,7 @@ class ScansRedisKeysTest extends TestCase
 {
     public function test_it_prefers_scan_over_keys(): void
     {
-        $redis = new class {
+        $redis = new class () {
             public int $scanCalls = 0;
             public int $keysCalls = 0;
 
@@ -21,21 +21,24 @@ class ScansRedisKeysTest extends TestCase
 
                 if ((string) $cursor === '0') {
                     $cursor = '1';
+
                     return ['shard:users:1'];
                 }
 
                 $cursor = '0';
+
                 return ['shard:users:2'];
             }
 
             public function keys(string $pattern): array
             {
                 $this->keysCalls++;
+
                 return ['shard:users:fallback'];
             }
         };
 
-        $scanner = new class {
+        $scanner = new class () {
             use ScansRedisKeys;
 
             public function collect($redis, string $pattern): array
@@ -53,7 +56,7 @@ class ScansRedisKeysTest extends TestCase
 
     public function test_it_falls_back_to_keys_when_scan_is_unavailable(): void
     {
-        $redis = new class {
+        $redis = new class () {
             public int $keysCalls = 0;
 
             public function scan(&$cursor, array $options): array
@@ -64,11 +67,12 @@ class ScansRedisKeysTest extends TestCase
             public function keys(string $pattern): array
             {
                 $this->keysCalls++;
+
                 return ['shard:users:legacy'];
             }
         };
 
-        $scanner = new class {
+        $scanner = new class () {
             use ScansRedisKeys;
 
             public function collect($redis, string $pattern): array

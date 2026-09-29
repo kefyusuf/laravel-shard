@@ -82,6 +82,7 @@ class ShardMetadata extends Model
     public function markInactive(): bool
     {
         $this->status = 'inactive';
+
         return $this->save();
     }
 
@@ -93,6 +94,7 @@ class ShardMetadata extends Model
     public function markActive(): bool
     {
         $this->status = 'active';
+
         return $this->save();
     }
 
@@ -105,6 +107,7 @@ class ShardMetadata extends Model
     public function updateRecordCount(int $count): bool
     {
         $this->record_count = $count;
+
         return $this->save();
     }
 
@@ -116,6 +119,7 @@ class ShardMetadata extends Model
     public function markRebalanced(): bool
     {
         $this->last_rebalanced_at = now();
+
         return $this->save();
     }
 }

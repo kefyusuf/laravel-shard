@@ -42,7 +42,7 @@ class ShardableRoutingTest extends TestCase
             $table->string('name');
         });
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             /** @var array<string, string> */
             public array $registered = [];
 
@@ -54,6 +54,7 @@ class ShardableRoutingTest extends TestCase
             public function register(string $table, mixed $key, string $shardConnection): bool
             {
                 $this->registered[$table . ':' . (string) $key] = $shardConnection;
+
                 return true;
             }
 
@@ -71,7 +72,7 @@ class ShardableRoutingTest extends TestCase
         $this->app->instance(ShardLocatorInterface::class, $locator);
         $this->app->instance('shard.locator', $locator);
 
-        $manager = new class {
+        $manager = new class () {
             public function getShardConnection(string $table, mixed $key): string
             {
                 return 'shard1';
@@ -81,7 +82,7 @@ class ShardableRoutingTest extends TestCase
         Facade::clearResolvedInstance('shard.manager');
         $this->app->instance('shard.manager', $manager);
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -137,7 +138,7 @@ class ShardableRoutingTest extends TestCase
             'name' => 'Fallback',
         ]);
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             public function locate(string $table, mixed $key): ?string
             {
                 return null;
@@ -162,7 +163,7 @@ class ShardableRoutingTest extends TestCase
         $this->app->instance(ShardLocatorInterface::class, $locator);
         $this->app->instance('shard.locator', $locator);
 
-        $manager = new class {
+        $manager = new class () {
             public function getShardConnection(string $table, mixed $key): string
             {
                 return 'shard2';
@@ -177,7 +178,7 @@ class ShardableRoutingTest extends TestCase
         Facade::clearResolvedInstance('shard.manager');
         $this->app->instance('shard.manager', $manager);
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -238,7 +239,7 @@ class ShardableRoutingTest extends TestCase
             'updated_at' => $now,
         ]);
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             public function locate(string $table, mixed $key): ?string
             {
                 return $key === 101 ? 'shard2' : null;
@@ -263,7 +264,7 @@ class ShardableRoutingTest extends TestCase
         $this->app->instance(ShardLocatorInterface::class, $locator);
         $this->app->instance('shard.locator', $locator);
 
-        $manager = new class {
+        $manager = new class () {
             public function getShardConnection(string $table, mixed $key): string
             {
                 return 'shard2';
@@ -278,7 +279,7 @@ class ShardableRoutingTest extends TestCase
         Facade::clearResolvedInstance('shard.manager');
         $this->app->instance('shard.manager', $manager);
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -378,7 +379,7 @@ class ShardableRoutingTest extends TestCase
             $table->string('name');
         });
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             public function locate(string $table, mixed $key): ?string
             {
                 return null;
@@ -403,7 +404,7 @@ class ShardableRoutingTest extends TestCase
         $this->app->instance(ShardLocatorInterface::class, $locator);
         $this->app->instance('shard.locator', $locator);
 
-        $manager = new class {
+        $manager = new class () {
             public function getShardConnection(string $table, mixed $key): string
             {
                 return 'shard1';
@@ -418,7 +419,7 @@ class ShardableRoutingTest extends TestCase
         Facade::clearResolvedInstance('shard.manager');
         $this->app->instance('shard.manager', $manager);
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -458,7 +459,7 @@ class ShardableRoutingTest extends TestCase
             $table->string('name');
         });
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';

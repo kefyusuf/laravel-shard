@@ -44,7 +44,7 @@ class InstallCommand extends Command
         $jsonOutput = $format === 'json';
         $skipMigrate = (bool) $this->option('skip-migrate');
 
-        if (!$jsonOutput) {
+        if (! $jsonOutput) {
             $this->info('Installing Laravel Redis Sharding...');
             $this->info('Publishing configuration...');
         }
@@ -62,8 +62,8 @@ class InstallCommand extends Command
             );
         }
 
-        if (!$skipMigrate) {
-            if (!$jsonOutput) {
+        if (! $skipMigrate) {
+            if (! $jsonOutput) {
                 $this->info('Running migrations...');
             }
 
@@ -76,19 +76,19 @@ class InstallCommand extends Command
                 );
             }
         } else {
-            if (!$jsonOutput) {
+            if (! $jsonOutput) {
                 $this->warn('Skipping migrations as requested.');
             }
         }
 
-        if (!$jsonOutput) {
+        if (! $jsonOutput) {
             $this->info('Laravel Redis Sharding installed successfully.');
         }
 
         return $this->respond(
             0,
             $jsonOutput,
-            $this->buildPayload('ok', true, !$skipMigrate, $skipMigrate)
+            $this->buildPayload('ok', true, ! $skipMigrate, $skipMigrate)
         );
     }
 

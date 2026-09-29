@@ -104,6 +104,7 @@ class ConsistentHashingStrategy implements ShardStrategyInterface
 
             if ($ringKey < $hash) {
                 $low = $mid + 1;
+
                 continue;
             }
 

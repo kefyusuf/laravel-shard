@@ -54,7 +54,7 @@ class RebalanceShardCommandTest extends TestCase
     {
         $this->prepareDeterministicRebalanceEnvironment();
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             /** @var array<string, array<string, string>> */
             public array $keys = [
                 'users' => [
@@ -70,16 +70,18 @@ class RebalanceShardCommandTest extends TestCase
             public function register(string $table, mixed $key, string $shardConnection): bool
             {
                 $this->keys[$table][(string) $key] = $shardConnection;
+
                 return true;
             }
 
             public function forget(string $table, mixed $key): bool
             {
-                if (!isset($this->keys[$table][(string) $key])) {
+                if (! isset($this->keys[$table][(string) $key])) {
                     return false;
                 }
 
                 unset($this->keys[$table][(string) $key]);
+
                 return true;
             }
 
@@ -96,12 +98,13 @@ class RebalanceShardCommandTest extends TestCase
             }
         };
 
-        $mover = new class implements RebalanceDataMoverInterface {
+        $mover = new class () implements RebalanceDataMoverInterface {
             public int $moves = 0;
 
             public function move(string $table, mixed $key, string $fromShard, string $toShard): bool
             {
                 $this->moves++;
+
                 return true;
             }
         };
@@ -125,7 +128,7 @@ class RebalanceShardCommandTest extends TestCase
     {
         $this->prepareDeterministicRebalanceEnvironment();
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             /** @var array<string, array<string, string>> */
             public array $keys = [
                 'users' => [
@@ -141,16 +144,18 @@ class RebalanceShardCommandTest extends TestCase
             public function register(string $table, mixed $key, string $shardConnection): bool
             {
                 $this->keys[$table][(string) $key] = $shardConnection;
+
                 return true;
             }
 
             public function forget(string $table, mixed $key): bool
             {
-                if (!isset($this->keys[$table][(string) $key])) {
+                if (! isset($this->keys[$table][(string) $key])) {
                     return false;
                 }
 
                 unset($this->keys[$table][(string) $key]);
+
                 return true;
             }
 
@@ -167,7 +172,7 @@ class RebalanceShardCommandTest extends TestCase
             }
         };
 
-        $mover = new class implements RebalanceDataMoverInterface {
+        $mover = new class () implements RebalanceDataMoverInterface {
             public function move(string $table, mixed $key, string $fromShard, string $toShard): bool
             {
                 throw new \RuntimeException('Data mover must not be called in metadata-only mode.');
@@ -204,7 +209,7 @@ class RebalanceShardCommandTest extends TestCase
             ],
         ]);
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             /** @var array<string, array<string, string>> */
             public array $keys = [
                 'users' => [
@@ -220,16 +225,18 @@ class RebalanceShardCommandTest extends TestCase
             public function register(string $table, mixed $key, string $shardConnection): bool
             {
                 $this->keys[$table][(string) $key] = $shardConnection;
+
                 return true;
             }
 
             public function forget(string $table, mixed $key): bool
             {
-                if (!isset($this->keys[$table][(string) $key])) {
+                if (! isset($this->keys[$table][(string) $key])) {
                     return false;
                 }
 
                 unset($this->keys[$table][(string) $key]);
+
                 return true;
             }
 
@@ -287,7 +294,7 @@ class RebalanceShardCommandTest extends TestCase
     {
         $this->prepareDeterministicRebalanceEnvironment();
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             /** @var array<string, array<string, string>> */
             public array $keys = [
                 'users' => [
@@ -303,6 +310,7 @@ class RebalanceShardCommandTest extends TestCase
             public function register(string $table, mixed $key, string $shardConnection): bool
             {
                 $this->keys[$table][(string) $key] = $shardConnection;
+
                 return true;
             }
 
@@ -341,7 +349,7 @@ class RebalanceShardCommandTest extends TestCase
     {
         $this->prepareDeterministicRebalanceEnvironment();
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             /** @var array<string, array<string, string>> */
             public array $keys = [
                 'users' => [
@@ -359,6 +367,7 @@ class RebalanceShardCommandTest extends TestCase
             public function register(string $table, mixed $key, string $shardConnection): bool
             {
                 $this->keys[$table][(string) $key] = $shardConnection;
+
                 return true;
             }
 

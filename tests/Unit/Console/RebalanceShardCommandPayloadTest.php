@@ -11,7 +11,7 @@ class RebalanceShardCommandPayloadTest extends TestCase
 {
     public function test_error_payload_contains_summary_and_error_message(): void
     {
-        $command = new class extends RebalanceShardCommand {
+        $command = new class () extends RebalanceShardCommand {
             public function exposedBuildErrorPayload(string $table, bool $dryRun, bool $metadataOnly, string $error): array
             {
                 return $this->buildErrorPayload($table, $dryRun, $metadataOnly, $error);
@@ -27,7 +27,7 @@ class RebalanceShardCommandPayloadTest extends TestCase
 
     public function test_dry_run_payload_contains_moves_and_summary_counts(): void
     {
-        $command = new class extends RebalanceShardCommand {
+        $command = new class () extends RebalanceShardCommand {
             public function exposedBuildDryRunPayload(
                 string $table,
                 bool $metadataOnly,

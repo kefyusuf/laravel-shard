@@ -49,13 +49,13 @@ class DatabaseRebalanceDataMoverTest extends TestCase
     protected function configureConnections(): void
     {
         $databaseDir = __DIR__ . '/../../tmp';
-        if (!is_dir($databaseDir)) {
+        if (! is_dir($databaseDir)) {
             mkdir($databaseDir, 0777, true);
         }
 
         foreach (['source_shard', 'target_shard'] as $connectionName) {
             $databasePath = $databaseDir . DIRECTORY_SEPARATOR . $connectionName . '.sqlite';
-            if (!file_exists($databasePath)) {
+            if (! file_exists($databasePath)) {
                 touch($databasePath);
             }
 

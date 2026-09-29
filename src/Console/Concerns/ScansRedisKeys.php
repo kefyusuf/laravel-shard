@@ -15,7 +15,7 @@ trait ScansRedisKeys
     {
         $scanPatterns = [$pattern];
         $redisPrefix = (string) config('database.redis.options.prefix', '');
-        if ($redisPrefix !== '' && !str_starts_with($pattern, $redisPrefix)) {
+        if ($redisPrefix !== '' && ! str_starts_with($pattern, $redisPrefix)) {
             $scanPatterns[] = $redisPrefix . $pattern;
         }
 
@@ -47,6 +47,7 @@ trait ScansRedisKeys
                         $yieldedAny = true;
                         yield $normalized;
                     }
+
                     return;
                 }
 

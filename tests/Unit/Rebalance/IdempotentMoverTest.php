@@ -87,7 +87,7 @@ class IdempotentMoverTest extends TestCase
     protected function prepareDatabase(string $suffix): string
     {
         $dir = __DIR__ . '/../../tmp';
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
 

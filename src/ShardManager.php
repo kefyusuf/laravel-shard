@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard;
 
-use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Collection;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
@@ -77,7 +77,7 @@ class ShardManager
                 throw new ShardingException("Failed to initialize sharding strategy '{$class}': {$e->getMessage()}");
             }
 
-            if (!$strategy instanceof ShardStrategyInterface) {
+            if (! $strategy instanceof ShardStrategyInterface) {
                 throw new ShardingException("Sharding strategy '{$class}' must implement ShardStrategyInterface");
             }
 
@@ -88,7 +88,7 @@ class ShardManager
             }
         }
 
-        if ($this->defaultStrategy === null && !empty($this->strategies)) {
+        if ($this->defaultStrategy === null && ! empty($this->strategies)) {
             $this->defaultStrategy = reset($this->strategies);
         }
     }
@@ -122,7 +122,7 @@ class ShardManager
         }
 
         $shardConnection = $this->defaultStrategy->determine($table, $key, $availableShards);
-        
+
         // Register the key to the selected shard
         $this->locator->register($table, $key, $shardConnection);
 
@@ -153,7 +153,7 @@ class ShardManager
         $originalConnections = $connections;
         $originalDatabaseConnections = $databaseConnections;
         $persistedRegistry = ShardRegistry::readAll();
-        
+
         if (isset($connections[$name]) || isset($databaseConnections[$name])) {
             return false;
         }
@@ -212,11 +212,11 @@ class ShardManager
             if ($this->defaultStrategy === null) {
                 throw new ShardingException('No default sharding strategy configured');
             }
-            
+
             return $this->defaultStrategy;
         }
 
-        if (!isset($this->strategies[$name])) {
+        if (! isset($this->strategies[$name])) {
             throw new ShardingException("Sharding strategy '{$name}' not found");
         }
 

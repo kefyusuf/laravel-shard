@@ -12,7 +12,7 @@ class ShardStatusCommandPayloadTest extends TestCase
 {
     public function test_build_error_payload_sets_error_status_and_message(): void
     {
-        $command = new class extends ShardStatusCommand {
+        $command = new class () extends ShardStatusCommand {
             public function exposedBuildErrorPayload(string $error, array $summary = []): array
             {
                 return $this->buildErrorPayload($error, $summary);
@@ -27,7 +27,7 @@ class ShardStatusCommandPayloadTest extends TestCase
 
     public function test_build_error_payload_preserves_context_fields(): void
     {
-        $command = new class extends ShardStatusCommand {
+        $command = new class () extends ShardStatusCommand {
             public function exposedBuildErrorPayload(string $error, array $summary = []): array
             {
                 return $this->buildErrorPayload($error, $summary);
@@ -43,7 +43,7 @@ class ShardStatusCommandPayloadTest extends TestCase
 
     public function test_build_table_summary_payload_has_expected_fields(): void
     {
-        $command = new class extends ShardStatusCommand {
+        $command = new class () extends ShardStatusCommand {
             public function exposedBuildTableSummaryPayload(string $table, int $totalKeys, array $rows): array
             {
                 return $this->buildTableSummaryPayload($table, $totalKeys, $rows);
@@ -63,7 +63,7 @@ class ShardStatusCommandPayloadTest extends TestCase
 
     public function test_build_shard_summary_payload_has_expected_fields(): void
     {
-        $command = new class extends ShardStatusCommand {
+        $command = new class () extends ShardStatusCommand {
             public function exposedBuildShardSummaryPayload(
                 string $shardName,
                 ?string $status,
@@ -88,7 +88,7 @@ class ShardStatusCommandPayloadTest extends TestCase
 
     public function test_build_overall_payload_embeds_summary_and_shards(): void
     {
-        $command = new class extends ShardStatusCommand {
+        $command = new class () extends ShardStatusCommand {
             public function exposedBuildOverallPayload(array $shards, Collection $metadata): array
             {
                 return $this->buildOverallPayload($shards, $metadata);

@@ -64,6 +64,7 @@ class ShardStatusCommand extends Command
             } else {
                 $this->error('No available shards found.');
             }
+
             return 1;
         }
 
@@ -89,7 +90,7 @@ class ShardStatusCommand extends Command
     {
         $shards = ShardManager::getAvailableShards();
         $metadata = ShardMetadata::all()->keyBy('name');
-        
+
         $data = [];
         foreach ($shards as $shardName) {
             $meta = $metadata->get($shardName);
@@ -133,7 +134,7 @@ class ShardStatusCommand extends Command
             $keys = $locator->getKeysForShard($table, $shardName);
             $keyCount = count($keys);
             $totalKeys += $keyCount;
-            
+
             $data[] = [
                 'Shard' => $shardName,
                 'Keys' => $keyCount,
@@ -147,12 +148,12 @@ class ShardStatusCommand extends Command
             $row['Percentage'] = $totalKeys > 0 ? round(($keyCount / $totalKeys) * 100, 2) . '%' : '0%';
         }
 
-            if ($format === 'json') {
-                $this->emitJson([
-                    'summary' => $this->buildTableSummaryPayload($table, $totalKeys, $data),
-                    'shards' => $data,
-                ]);
-            } else {
+        if ($format === 'json') {
+            $this->emitJson([
+                'summary' => $this->buildTableSummaryPayload($table, $totalKeys, $data),
+                'shards' => $data,
+            ]);
+        } else {
             $this->info("Table: {$table}");
             $this->table(['Shard', 'Keys', 'Percentage'], $data);
             $this->info("Total Keys: {$totalKeys}");
@@ -172,8 +173,8 @@ class ShardStatusCommand extends Command
     protected function showShardStatus(string $shardName, ShardLocatorInterface $locator, string $format): int
     {
         $availableShards = ShardManager::getAvailableShards();
-        
-        if (!in_array($shardName, $availableShards)) {
+
+        if (! in_array($shardName, $availableShards)) {
             if ($format === 'json') {
                 $this->emitJson(
                     $this->buildErrorPayload("Shard '{$shardName}' not found.", ['shard' => $shardName])
@@ -181,18 +182,19 @@ class ShardStatusCommand extends Command
             } else {
                 $this->error("Shard '{$shardName}' not found.");
             }
+
             return 1;
         }
 
         $metadata = ShardMetadata::where('name', $shardName)->first();
-        
+
         // Get table distribution for this shard
         $tables = config('redis_sharding.monitored_tables', ['users', 'orders', 'products']);
         $tableData = [];
-        
+
         foreach ($tables as $table) {
             $keys = $locator->getKeysForShard($table, $shardName);
-            if (!empty($keys)) {
+            if (! empty($keys)) {
                 $tableData[] = [
                     'Table' => $table,
                     'Keys' => count($keys),
@@ -218,8 +220,8 @@ class ShardStatusCommand extends Command
             $this->info("Record Count: " . ($metadata?->record_count ?? 0));
             $this->info("Created: " . ($metadata?->created_at?->diffForHumans() ?? 'Unknown'));
             $this->info("Last Rebalanced: " . ($metadata?->last_rebalanced_at?->diffForHumans() ?? 'Never'));
-            
-            if (!empty($tableData)) {
+
+            if (! empty($tableData)) {
                 $this->line('');
                 $this->info('Table Distribution:');
                 $this->table(['Table', 'Keys'], $tableData);

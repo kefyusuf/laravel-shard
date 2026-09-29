@@ -100,7 +100,7 @@ class ShardMonitor
 
         foreach ($shards as $shardName) {
             $meta = $metadata->get($shardName);
-            
+
             $shardMetrics[$shardName] = [
                 'name' => $shardName,
                 'status' => $meta->status ?? 'unknown',
@@ -233,6 +233,7 @@ class ShardMonitor
                         FROM information_schema.tables 
                         WHERE table_schema = DATABASE()
                     ");
+
                     break;
 
                 case 'pgsql':
@@ -243,6 +244,7 @@ class ShardMonitor
                         FROM information_schema.tables 
                         WHERE table_schema = 'public'
                     ");
+
                     break;
 
                 default:
@@ -294,6 +296,7 @@ class ShardMonitor
         try {
             $startTime = microtime(true);
             $this->getRedisConnection()->command('ping');
+
             return round((microtime(true) - $startTime) * 1000, 2);
         } catch (\Exception $e) {
             return -1;
@@ -310,6 +313,7 @@ class ShardMonitor
         try {
             $startTime = microtime(true);
             ShardManager::getShardConnection('test_table', 'test_key');
+
             return round((microtime(true) - $startTime) * 1000, 2);
         } catch (\Exception $e) {
             return -1;
@@ -329,12 +333,12 @@ class ShardMonitor
 
         foreach ($strategies as $name => $strategy) {
             $startTime = microtime(true);
-            
+
             // Test with 100 sample keys
             for ($i = 1; $i <= 100; $i++) {
                 $strategy->determine('test_table', $i, $shards);
             }
-            
+
             $totalTime = (microtime(true) - $startTime) * 1000;
             $performance[$name] = [
                 'total_time_ms' => round($totalTime, 2),
@@ -366,6 +370,7 @@ class ShardMonitor
     {
         try {
             $this->getRedisConnection()->command('ping');
+
             return 'healthy';
         } catch (\Exception $e) {
             return 'unhealthy';

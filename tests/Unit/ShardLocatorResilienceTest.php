@@ -15,7 +15,7 @@ class ShardLocatorResilienceTest extends TestCase
 {
     public function test_it_serves_cached_mappings_without_requerying_redis(): void
     {
-        $client = new class {
+        $client = new class () {
             public int $getCalls = 0;
 
             public function get(string $key): string
@@ -35,21 +35,21 @@ class ShardLocatorResilienceTest extends TestCase
 
     public function test_it_returns_cached_mapping_when_redis_fails_after_a_successful_lookup(): void
     {
-        $healthyClient = new class {
+        $healthyClient = new class () {
             public function get(string $key): string
             {
                 return 'shard2';
             }
         };
 
-        $failingClient = new class {
+        $failingClient = new class () {
             public function get(string $key): never
             {
                 throw new \RuntimeException('Redis offline');
             }
         };
 
-        $manager = new class($this->app, $healthyClient) extends RedisManager {
+        $manager = new class ($this->app, $healthyClient) extends RedisManager {
             public function __construct($app, private object $client)
             {
                 parent::__construct($app, 'predis', []);
@@ -62,7 +62,7 @@ class ShardLocatorResilienceTest extends TestCase
 
             public function connection($name = null): Connection
             {
-                return new class($this->client) extends Connection {
+                return new class ($this->client) extends Connection {
                     public function __construct(object $client)
                     {
                         $this->client = $client;
@@ -86,7 +86,7 @@ class ShardLocatorResilienceTest extends TestCase
 
     public function test_it_throws_a_sharding_exception_for_uncached_lookups_when_redis_is_unavailable(): void
     {
-        $failingClient = new class {
+        $failingClient = new class () {
             public function get(string $key): never
             {
                 throw new \RuntimeException('Redis offline');
@@ -105,7 +105,7 @@ class ShardLocatorResilienceTest extends TestCase
     {
         config()->set('redis_sharding.locator.fallback_store', 'array');
 
-        $healthyClient = new class {
+        $healthyClient = new class () {
             public function get(string $key): ?string
             {
                 return null;
@@ -127,7 +127,7 @@ class ShardLocatorResilienceTest extends TestCase
             }
         };
 
-        $failingClient = new class {
+        $failingClient = new class () {
             public function get(string $key): never
             {
                 throw new \RuntimeException('Redis offline');
@@ -145,7 +145,7 @@ class ShardLocatorResilienceTest extends TestCase
 
     private function makeLocatorWithClient(object $client): ShardLocator
     {
-        $manager = new class($this->app, $client) extends RedisManager {
+        $manager = new class ($this->app, $client) extends RedisManager {
             public function __construct($app, private object $client)
             {
                 parent::__construct($app, 'predis', []);
@@ -153,7 +153,7 @@ class ShardLocatorResilienceTest extends TestCase
 
             public function connection($name = null): Connection
             {
-                return new class($this->client) extends Connection {
+                return new class ($this->client) extends Connection {
                     public function __construct(object $client)
                     {
                         $this->client = $client;

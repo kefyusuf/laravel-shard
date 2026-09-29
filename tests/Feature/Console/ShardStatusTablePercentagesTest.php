@@ -25,7 +25,7 @@ class ShardStatusTablePercentagesTest extends TestCase
         $this->app->forgetInstance('shard.manager');
         Facade::clearResolvedInstance('shard.manager');
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             public function locate(string $table, mixed $key): ?string
             {
                 return null;

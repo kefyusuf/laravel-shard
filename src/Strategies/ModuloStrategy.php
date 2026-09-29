@@ -21,10 +21,10 @@ class ModuloStrategy implements ShardStrategyInterface
 
         // Convert key to numeric value for modulo operation
         $numericKey = $this->getNumericValue($key);
-        
+
         // Use modulo to determine shard index
         $shardIndex = $numericKey % count($availableShards);
-        
+
         // Return the shard at that index
         return $availableShards[$shardIndex];
     }

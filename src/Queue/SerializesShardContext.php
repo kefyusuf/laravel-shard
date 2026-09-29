@@ -40,7 +40,7 @@ trait SerializesShardContext
         $connection = $this->shardContext->connection;
         $connections = config('redis_sharding.connections', []);
 
-        if (!array_key_exists($connection, $connections)) {
+        if (! array_key_exists($connection, $connections)) {
             throw new ShardingException(sprintf(
                 'Cannot restore shard context: connection "%s" is not configured.',
                 $connection

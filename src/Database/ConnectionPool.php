@@ -6,7 +6,6 @@ namespace Laravel\RedisShard\Database;
 
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Support\Facades\DB;
 
 /**
  * @deprecated since 4.2.0. This class is not wired into the container and
@@ -65,10 +64,11 @@ class ConnectionPool
         // Check if we have a cached connection
         if (isset($this->connections[$shardName])) {
             $connection = $this->connections[$shardName];
-            
+
             // Check if connection is still alive
             if ($this->isConnectionAlive($connection)) {
                 $this->connectionUsage[$shardName] = time();
+
                 return $connection;
             } else {
                 // Remove dead connection
@@ -115,6 +115,7 @@ class ConnectionPool
     {
         try {
             $connection->getPdo();
+
             return true;
         } catch (\Exception $e) {
             return false;
@@ -156,7 +157,7 @@ class ConnectionPool
             } catch (\Exception $e) {
                 // Ignore errors when closing connections
             }
-            
+
             unset($this->connections[$shardName]);
             unset($this->connectionUsage[$shardName]);
         }
@@ -275,7 +276,7 @@ class ConnectionPool
     public function setMaxConnections(int $maxConnections): void
     {
         $this->maxConnections = $maxConnections;
-        
+
         // Clean up excess connections if needed
         if (count($this->connections) > $maxConnections) {
             $this->cleanupOldConnections();

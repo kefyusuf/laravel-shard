@@ -12,7 +12,7 @@ class ShardAnalyzeCommandDistributionTest extends TestCase
 {
     public function test_distribution_uses_all_samples_for_odd_sample_size(): void
     {
-        $command = new class extends ShardAnalyzeCommand {
+        $command = new class () extends ShardAnalyzeCommand {
             public function exposedTestDistribution($strategy, array $shards, int $sampleSize): array
             {
                 return $this->testDistribution($strategy, $shards, $sampleSize);

@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
+
+use function Laravel\RedisShard\Queue\dispatchSharded;
+
 use Laravel\RedisShard\Queue\ShardAwareJob;
 use Laravel\RedisShard\Tests\TestCase;
 use Laravel\RedisShard\Traits\Shardable;
-
-use function Laravel\RedisShard\Queue\dispatchSharded;
 
 class DispatchShardedTest extends TestCase
 {
@@ -87,7 +88,7 @@ class DispatchShardedTest extends TestCase
         $locator->register('users', 'a@example.com', 'shard1');
         $locator->register('users', 'b@example.com', 'shard2');
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -137,7 +138,7 @@ class DispatchShardedTest extends TestCase
         $locator->register('users', 'a@example.com', 'shard1');
         $locator->register('users', 'b@example.com', 'shard2');
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -192,7 +193,7 @@ class DispatchShardedTest extends TestCase
             'name' => 'Old',
         ]);
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -220,7 +221,7 @@ class DispatchShardedTest extends TestCase
 
     protected function shardableModel(): Model
     {
-        return new class extends Model {
+        return new class () extends Model {
             use Shardable;
 
             protected $table = 'users';

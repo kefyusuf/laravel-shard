@@ -12,7 +12,7 @@ class ValidatesOutputFormatTest extends TestCase
 {
     public function test_it_accepts_table_and_json_formats(): void
     {
-        $command = new class extends Command {
+        $command = new class () extends Command {
             use ValidatesOutputFormat;
 
             public function handle(): int
@@ -32,7 +32,7 @@ class ValidatesOutputFormatTest extends TestCase
 
     public function test_it_rejects_unsupported_format(): void
     {
-        $command = new class extends Command {
+        $command = new class () extends Command {
             use ValidatesOutputFormat;
 
             public function handle(): int

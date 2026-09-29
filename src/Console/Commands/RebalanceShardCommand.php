@@ -73,10 +73,10 @@ class RebalanceShardCommand extends Command
         $strategyName = $this->option('strategy');
         $this->jsonOutput = $format === 'json';
 
-        if (!$this->jsonOutput) {
+        if (! $this->jsonOutput) {
             $this->info("Rebalancing table: {$table}");
         }
-        if ($dryRun && !$this->jsonOutput) {
+        if ($dryRun && ! $this->jsonOutput) {
             $this->warn('Dry run mode - no changes will be made');
         }
 
@@ -85,7 +85,7 @@ class RebalanceShardCommand extends Command
             ? app()->make(RebalanceDataMoverInterface::class)
             : null;
 
-        if (!$dryRun && !$metadataOnly && $dataMover === null) {
+        if (! $dryRun && ! $metadataOnly && $dataMover === null) {
             return $this->respond(1, $this->buildErrorPayload(
                 $table,
                 $dryRun,
@@ -107,8 +107,8 @@ class RebalanceShardCommand extends Command
 
         // Get the strategy to use
         try {
-            $strategy = $strategyName ? 
-                ShardManager::strategy($strategyName) : 
+            $strategy = $strategyName ?
+                ShardManager::strategy($strategyName) :
                 ShardManager::strategy();
         } catch (\Exception $e) {
             return $this->respond(1, $this->buildErrorPayload(
@@ -119,7 +119,7 @@ class RebalanceShardCommand extends Command
             ));
         }
 
-        if (!$this->jsonOutput) {
+        if (! $this->jsonOutput) {
             $this->info("Using strategy: {$strategy->getName()}");
         }
 
@@ -131,8 +131,8 @@ class RebalanceShardCommand extends Command
             $keys = $locator->getKeysForShard($table, $shard);
             $shardKeys[$shard] = $keys;
             $totalKeys += count($keys);
-            
-            if (!$this->jsonOutput) {
+
+            if (! $this->jsonOutput) {
                 $this->info("Shard {$shard}: " . count($keys) . " keys");
             }
         }
@@ -154,15 +154,15 @@ class RebalanceShardCommand extends Command
         // Calculate moves needed
         $moves = [];
         $idealCount = ceil($totalKeys / count($availableShards));
-        
-        if (!$this->jsonOutput) {
+
+        if (! $this->jsonOutput) {
             $this->info("Ideal count per shard: {$idealCount}");
         }
 
         foreach ($shardKeys as $shard => $keys) {
             foreach ($keys as $key) {
                 $targetShard = $strategy->determine($table, $key, $availableShards);
-                
+
                 if ($targetShard !== $shard) {
                     $moves[] = [
                         'key' => $key,
@@ -173,7 +173,7 @@ class RebalanceShardCommand extends Command
             }
         }
 
-        if (!$this->jsonOutput) {
+        if (! $this->jsonOutput) {
             $this->info("Total moves needed: " . count($moves));
         }
 
@@ -182,7 +182,7 @@ class RebalanceShardCommand extends Command
         if ($limit !== null && count($plannedMoves) > $limit) {
             $plannedMoves = array_slice($plannedMoves, 0, $limit);
             $limited = true;
-            if (!$this->jsonOutput) {
+            if (! $this->jsonOutput) {
                 $this->warn("Limiting this run to {$limit} moves (" . count($moves) . ' planned)');
             }
         }
@@ -215,7 +215,7 @@ class RebalanceShardCommand extends Command
         }
 
         // Confirm before proceeding
-        if (!$force && !$this->confirm('Do you wish to proceed with rebalancing?')) {
+        if (! $force && ! $this->confirm('Do you wish to proceed with rebalancing?')) {
             return $this->respond(0, [
                 'summary' => [
                     'table' => $table,
@@ -232,7 +232,7 @@ class RebalanceShardCommand extends Command
 
         // Perform the moves
         $bar = null;
-        if (!$this->jsonOutput) {
+        if (! $this->jsonOutput) {
             $bar = $this->output->createProgressBar(count($plannedMoves));
             $bar->start();
         }
@@ -242,9 +242,9 @@ class RebalanceShardCommand extends Command
 
         foreach ($plannedMoves as $move) {
             try {
-                if (!$metadataOnly && $dataMover !== null) {
+                if (! $metadataOnly && $dataMover !== null) {
                     $moved = $dataMover->move($table, $move['key'], $move['from'], $move['to']);
-                    if (!$moved) {
+                    if (! $moved) {
                         throw new \RuntimeException("Data move failed for key {$move['key']}");
                     }
                 }
@@ -255,7 +255,7 @@ class RebalanceShardCommand extends Command
 
                 $successCount++;
             } catch (\Exception $e) {
-                if (!$this->jsonOutput) {
+                if (! $this->jsonOutput) {
                     $this->newLine();
                     $this->error("Error moving key {$move['key']}: {$e->getMessage()}");
                 }

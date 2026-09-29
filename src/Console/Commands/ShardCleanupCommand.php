@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ScansRedisKeys;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
@@ -51,7 +52,7 @@ class ShardCleanupCommand extends Command
             ->all();
 
         $redisConnection = config('redis_sharding.redis_connection', 'default');
-        $redis = app('redis')->connection($redisConnection);
+        $redis = app(RedisFactory::class)->connection($redisConnection);
         $shards = ShardManager::getAvailableShards();
         $shardLookup = array_fill_keys($shards, true);
 
@@ -72,7 +73,7 @@ class ShardCleanupCommand extends Command
 
             [$table, $recordKey] = $parsed;
 
-            if (!empty($targetTables) && !in_array($table, $targetTables, true)) {
+            if (! empty($targetTables) && ! in_array($table, $targetTables, true)) {
                 continue;
             }
 
@@ -80,18 +81,18 @@ class ShardCleanupCommand extends Command
             $scannedKeys++;
 
             $locatedShard = $locator->locate($table, $recordKey);
-            if ($locatedShard === null || !isset($shardLookup[$locatedShard])) {
+            if ($locatedShard === null || ! isset($shardLookup[$locatedShard])) {
                 $orphanedKeys++;
 
-                if (!$dryRun) {
-                    $redis->del("shard:{$table}:{$recordKey}");
+                if (! $dryRun) {
+                    $redis->command('del', ["shard:{$table}:{$recordKey}"]);
                 }
             }
         }
 
-        $tablesToClean = !empty($targetTables)
+        $tablesToClean = ! empty($targetTables)
             ? $targetTables
-            : (!empty($tablesSeen) ? array_keys($tablesSeen) : (array) config('redis_sharding.monitored_tables', []));
+            : (! empty($tablesSeen) ? array_keys($tablesSeen) : (array) config('redis_sharding.monitored_tables', []));
 
         $tablesToClean = array_values(array_filter(
             array_unique($tablesToClean),
@@ -101,7 +102,7 @@ class ShardCleanupCommand extends Command
         foreach ($tablesToClean as $table) {
             foreach ($shards as $shard) {
                 $shardMapKey = "shard_map:{$table}:{$shard}";
-                $keysForShard = $redis->smembers($shardMapKey);
+                $keysForShard = $redis->command('smembers', [$shardMapKey]);
 
                 foreach ($keysForShard as $recordKey) {
                     $locatedShard = $locator->locate($table, $recordKey);
@@ -109,8 +110,8 @@ class ShardCleanupCommand extends Command
                     if ($locatedShard !== $shard) {
                         $staleMapEntries++;
 
-                        if (!$dryRun) {
-                            $redis->srem($shardMapKey, (string) $recordKey);
+                        if (! $dryRun) {
+                            $redis->command('srem', [$shardMapKey, (string) $recordKey]);
                         }
                     }
                 }
@@ -131,7 +132,7 @@ class ShardCleanupCommand extends Command
     }
 
     /**
-     * @return array<string, int|bool>
+     * @return array<string, array<string, bool|int|string>>
      */
     protected function buildReportPayload(
         bool $dryRun,

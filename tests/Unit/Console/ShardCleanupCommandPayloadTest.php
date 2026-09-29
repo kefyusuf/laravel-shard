@@ -11,7 +11,7 @@ class ShardCleanupCommandPayloadTest extends TestCase
 {
     public function test_build_report_payload_has_expected_schema(): void
     {
-        $command = new class extends ShardCleanupCommand {
+        $command = new class () extends ShardCleanupCommand {
             public function exposedBuildReportPayload(
                 bool $dryRun,
                 int $scannedKeys,

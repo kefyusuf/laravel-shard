@@ -31,7 +31,7 @@ test-docker-focused:
 	$(RUN) vendor/bin/phpunit tests/Unit/ShardLocatorResilienceTest.php tests/Integration/ShardLocatorTest.php tests/Feature/ShardableRoutingTest.php tests/Unit/Strategies/ConsistentHashingStrategyTest.php tests/Unit/ShardManagerRegistryTest.php --colors=never
 
 phpstan:
-	$(RUN) vendor/bin/phpstan analyse --no-progress
+	$(RUN) vendor/bin/phpstan analyse --no-progress --memory-limit=1G
 
 cs:
 	$(RUN) vendor/bin/php-cs-fixer fix --dry-run --diff

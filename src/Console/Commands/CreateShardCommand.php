@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Facades\ShardManager;
-use Laravel\RedisShard\Models\ShardMetadata;
 
 class CreateShardCommand extends Command
 {
@@ -116,12 +115,12 @@ class CreateShardCommand extends Command
 
         // Register the shard
         if (ShardManager::createShard($name, $config)) {
-            if (!$jsonOutput) {
+            if (! $jsonOutput) {
                 $this->info("Shard \"{$name}\" created successfully!");
             }
 
             $skipMigrate = (bool) $this->option('skip-migrate');
-            if (!$skipMigrate) {
+            if (! $skipMigrate) {
                 // Run migrations on the new shard
                 $migrateExitCode = $this->invokeSubCommand($jsonOutput, 'migrate', [
                     '--database' => $name,
@@ -168,9 +167,9 @@ class CreateShardCommand extends Command
     {
         if ($config['driver'] === 'sqlite') {
             $database = (string) $config['database'];
-            if ($database !== ':memory:' && !file_exists($database)) {
+            if ($database !== ':memory:' && ! file_exists($database)) {
                 $directory = dirname($database);
-                if (!is_dir($directory)) {
+                if (! is_dir($directory)) {
                     mkdir($directory, 0750, true);
                 }
 
@@ -197,15 +196,18 @@ class CreateShardCommand extends Command
             case 'mysql':
                 $escapedDatabase = str_replace('`', '``', $databaseName);
                 $db->statement("CREATE DATABASE IF NOT EXISTS `{$escapedDatabase}`");
+
                 break;
             case 'pgsql':
                 $escapedDatabase = str_replace('"', '""', $databaseName);
                 $db->statement("CREATE DATABASE \"{$escapedDatabase}\"");
+
                 break;
             case 'sqlsrv':
                 $escapedDatabase = str_replace("'", "''", $databaseName);
                 $escapedBracketDatabase = str_replace(']', ']]', $databaseName);
                 $db->statement("IF DB_ID(N'{$escapedDatabase}') IS NULL CREATE DATABASE [{$escapedBracketDatabase}]");
+
                 break;
             default:
                 throw new \InvalidArgumentException("Unsupported driver for shard creation: {$config['driver']}");

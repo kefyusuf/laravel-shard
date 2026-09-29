@@ -35,7 +35,7 @@ class RedisModule
 
     public function register(): void
     {
-        if (!$this->isAvailable()) {
+        if (! $this->isAvailable()) {
             return;
         }
 
@@ -52,7 +52,7 @@ class RedisModule
 
     public function boot(): void
     {
-        if (!$this->isAvailable()) {
+        if (! $this->isAvailable()) {
             return;
         }
 

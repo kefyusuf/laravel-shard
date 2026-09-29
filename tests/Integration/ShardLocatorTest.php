@@ -14,12 +14,12 @@ class ShardLocatorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Skip integration tests if Redis is not available
         $this->skipIfRedisNotAvailable();
-        
+
         $this->locator = $this->app->make(ShardLocatorInterface::class);
-        
+
         // Clear Redis before each test
         $this->app->make('redis')->flushall();
     }
@@ -28,7 +28,7 @@ class ShardLocatorTest extends TestCase
     {
         $result = $this->locator->register('users', 123, 'shard1');
         $this->assertTrue($result);
-        
+
         $located = $this->locator->locate('users', 123);
         $this->assertEquals('shard1', $located);
     }
@@ -44,11 +44,11 @@ class ShardLocatorTest extends TestCase
         // Register key
         $this->locator->register('users', 456, 'shard2');
         $this->assertEquals('shard2', $this->locator->locate('users', 456));
-        
+
         // Forget key
         $result = $this->locator->forget('users', 456);
         $this->assertTrue($result);
-        
+
         // Should not be found anymore
         $located = $this->locator->locate('users', 456);
         $this->assertNull($located);
@@ -66,16 +66,16 @@ class ShardLocatorTest extends TestCase
         $this->locator->register('users', 100, 'shard1');
         $this->locator->register('users', 200, 'shard1');
         $this->locator->register('users', 300, 'shard2');
-        
+
         $shard1Keys = $this->locator->getKeysForShard('users', 'shard1');
         $shard2Keys = $this->locator->getKeysForShard('users', 'shard2');
-        
+
         $this->assertIsArray($shard1Keys);
         $this->assertIsArray($shard2Keys);
-        
+
         $this->assertCount(2, $shard1Keys);
         $this->assertCount(1, $shard2Keys);
-        
+
         $this->assertContains('100', $shard1Keys);
         $this->assertContains('200', $shard1Keys);
         $this->assertContains('300', $shard2Keys);
@@ -84,10 +84,10 @@ class ShardLocatorTest extends TestCase
     public function test_it_handles_string_keys(): void
     {
         $this->locator->register('users', 'user@example.com', 'shard3');
-        
+
         $located = $this->locator->locate('users', 'user@example.com');
         $this->assertEquals('shard3', $located);
-        
+
         $keys = $this->locator->getKeysForShard('users', 'shard3');
         $this->assertContains('user@example.com', $keys);
     }
@@ -96,10 +96,10 @@ class ShardLocatorTest extends TestCase
     {
         $this->locator->register('users', 123, 'shard1');
         $this->locator->register('orders', 123, 'shard2');
-        
+
         $userShard = $this->locator->locate('users', 123);
         $orderShard = $this->locator->locate('orders', 123);
-        
+
         $this->assertEquals('shard1', $userShard);
         $this->assertEquals('shard2', $orderShard);
     }
@@ -110,16 +110,16 @@ class ShardLocatorTest extends TestCase
         $this->locator->register('users', 100, 'shard1');
         $this->locator->register('users', 200, 'shard1');
         $this->locator->register('users', 300, 'shard2');
-        
+
         // Forget one key from shard1
         $this->locator->forget('users', 100);
-        
+
         // shard1 should still have key 200
         $shard1Keys = $this->locator->getKeysForShard('users', 'shard1');
         $this->assertCount(1, $shard1Keys);
         $this->assertContains('200', $shard1Keys);
         $this->assertNotContains('100', $shard1Keys);
-        
+
         // shard2 should be unchanged
         $shard2Keys = $this->locator->getKeysForShard('users', 'shard2');
         $this->assertCount(1, $shard2Keys);
@@ -138,11 +138,11 @@ class ShardLocatorTest extends TestCase
         // Register key to shard1
         $this->locator->register('users', 123, 'shard1');
         $this->assertEquals('shard1', $this->locator->locate('users', 123));
-        
+
         // Register same key to shard2 (overwrite)
         $this->locator->register('users', 123, 'shard2');
         $this->assertEquals('shard2', $this->locator->locate('users', 123));
-        
+
         // Key should be in shard2's key set
         $shard2Keys = $this->locator->getKeysForShard('users', 'shard2');
         $this->assertContains('123', $shard2Keys);

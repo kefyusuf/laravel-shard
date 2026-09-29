@@ -11,7 +11,7 @@ class ShardAnalyzeCommandPayloadTest extends TestCase
 {
     public function test_build_overall_summary_selects_best_strategy(): void
     {
-        $command = new class extends ShardAnalyzeCommand {
+        $command = new class () extends ShardAnalyzeCommand {
             public function exposedBuildOverallSummary(array $results, int $sampleSize): array
             {
                 return $this->buildOverallSummary($results, $sampleSize);
@@ -32,7 +32,7 @@ class ShardAnalyzeCommandPayloadTest extends TestCase
 
     public function test_build_table_summary_includes_key_metrics(): void
     {
-        $command = new class extends ShardAnalyzeCommand {
+        $command = new class () extends ShardAnalyzeCommand {
             public function exposedBuildTableSummary(array $analysis): array
             {
                 return $this->buildTableSummary($analysis);

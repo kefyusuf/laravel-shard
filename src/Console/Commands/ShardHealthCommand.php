@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Illuminate\Support\Facades\DB;
 use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
 use Laravel\RedisShard\Console\Concerns\ScansRedisKeys;
@@ -54,11 +55,11 @@ class ShardHealthCommand extends Command
         }
 
         $this->jsonOutput = $format === 'json';
-        
-        if (!$this->jsonOutput) {
+
+        if (! $this->jsonOutput) {
             $this->info('Checking shard health...');
         }
-        
+
         $issues = [];
         $issues = array_merge($issues, $this->checkShardConnectivity());
         $redisIssues = $this->checkRedisConnectivity();
@@ -68,13 +69,13 @@ class ShardHealthCommand extends Command
             $issues = array_merge($issues, $this->checkShardBalance($locator));
             $issues = array_merge($issues, $this->checkOrphanedKeys($locator));
         } else {
-            if (!$this->jsonOutput) {
+            if (! $this->jsonOutput) {
                 $this->warn('Skipping shard balance/orphan checks because Redis is unavailable.');
             }
         }
 
         $summary = $this->buildSummary($issues);
-        
+
         if (empty($issues)) {
             if ($format === 'json') {
                 $this->emitJson([
@@ -84,6 +85,7 @@ class ShardHealthCommand extends Command
             } else {
                 $this->info('✅ All shards are healthy!');
             }
+
             return 0;
         }
 
@@ -160,11 +162,11 @@ class ShardHealthCommand extends Command
     {
         $issues = [];
         $shards = ShardManager::getAvailableShards();
-        
+
         foreach ($shards as $shardName) {
             try {
                 DB::connection($shardName)->getPdo();
-                if (!$this->jsonOutput) {
+                if (! $this->jsonOutput) {
                     $this->line("✅ Shard '{$shardName}' is accessible");
                 }
             } catch (\Exception $e) {
@@ -175,12 +177,12 @@ class ShardHealthCommand extends Command
                     'message' => "Cannot connect to shard '{$shardName}': " . $e->getMessage(),
                     'fixable' => false,
                 ];
-                if (!$this->jsonOutput) {
+                if (! $this->jsonOutput) {
                     $this->line("❌ Shard '{$shardName}' is not accessible");
                 }
             }
         }
-        
+
         return $issues;
     }
 
@@ -192,12 +194,12 @@ class ShardHealthCommand extends Command
     protected function checkRedisConnectivity(): array
     {
         $issues = [];
-        
+
         try {
             $redisConnection = config('redis_sharding.redis_connection', 'default');
-            $redis = app('redis')->connection($redisConnection);
+            $redis = app(RedisFactory::class)->connection($redisConnection);
             $redis->command('ping');
-            if (!$this->jsonOutput) {
+            if (! $this->jsonOutput) {
                 $this->line('✅ Redis is accessible');
             }
         } catch (\Exception $e) {
@@ -207,11 +209,11 @@ class ShardHealthCommand extends Command
                 'message' => 'Cannot connect to Redis: ' . $e->getMessage(),
                 'fixable' => false,
             ];
-            if (!$this->jsonOutput) {
+            if (! $this->jsonOutput) {
                 $this->line('❌ Redis is not accessible');
             }
         }
-        
+
         return $issues;
     }
 
@@ -226,24 +228,24 @@ class ShardHealthCommand extends Command
         $issues = [];
         $shards = ShardManager::getAvailableShards();
         $tables = config('redis_sharding.monitored_tables', ['users', 'orders', 'products']);
-        
+
         foreach ($tables as $table) {
             $distribution = [];
             $totalKeys = 0;
-            
+
             foreach ($shards as $shardName) {
                 $keyCount = count($locator->getKeysForShard($table, $shardName));
                 $distribution[$shardName] = $keyCount;
                 $totalKeys += $keyCount;
             }
-            
+
             if ($totalKeys === 0) {
                 continue;
             }
-            
+
             $idealCount = $totalKeys / count($shards);
             $threshold = $idealCount * 0.3; // 30% deviation threshold
-            
+
             foreach ($distribution as $shardName => $keyCount) {
                 $deviation = abs($keyCount - $idealCount);
                 if ($deviation > $threshold) {
@@ -260,7 +262,7 @@ class ShardHealthCommand extends Command
                 }
             }
         }
-        
+
         return $issues;
     }
 
@@ -274,25 +276,25 @@ class ShardHealthCommand extends Command
     {
         $issues = [];
         $shardLookup = array_fill_keys(ShardManager::getAvailableShards(), true);
-        
+
         try {
             $redisConnection = config('redis_sharding.redis_connection', 'default');
-            $redis = app('redis')->connection($redisConnection);
+            $redis = app(RedisFactory::class)->connection($redisConnection);
             $orphanedCount = 0;
             foreach ($this->scanKeys($redis, 'shard:*') as $key) {
                 $parsed = $this->parseShardRedisKey((string) $key);
                 if ($parsed === null) {
                     continue;
                 }
-                
+
                 [$table, $recordKey] = $parsed;
-                
+
                 $shardConnection = $locator->locate($table, $recordKey);
-                if ($shardConnection === null || !isset($shardLookup[$shardConnection])) {
+                if ($shardConnection === null || ! isset($shardLookup[$shardConnection])) {
                     $orphanedCount++;
                 }
             }
-            
+
             if ($orphanedCount > 0) {
                 $issues[] = [
                     'type' => 'orphaned_keys',
@@ -305,7 +307,7 @@ class ShardHealthCommand extends Command
         } catch (\Exception $e) {
             // Redis connectivity already checked above
         }
-        
+
         return $issues;
     }
 
@@ -318,7 +320,7 @@ class ShardHealthCommand extends Command
     protected function displayIssues(array $issues): void
     {
         $this->error('🚨 Health check found ' . count($issues) . ' issue(s):');
-        
+
         $tableData = [];
         foreach ($issues as $issue) {
             $tableData[] = [
@@ -329,7 +331,7 @@ class ShardHealthCommand extends Command
                 'Fixable' => $issue['fixable'] ? '✅' : '❌',
             ];
         }
-        
+
         $this->table(['Severity', 'Type', 'Shard', 'Message', 'Fixable'], $tableData);
     }
 
@@ -338,24 +340,25 @@ class ShardHealthCommand extends Command
      *
      * @param array $issues
      * @param ShardLocatorInterface $locator
-     * @return int
+     * @return array{fixed: int, failed: int, unresolved: int, exit_code: int}
      */
     protected function fixIssues(array $issues, ShardLocatorInterface $locator): array
     {
         $fixed = 0;
         $failed = 0;
         $unresolved = 0;
-        
+
         foreach ($issues as $issue) {
-            if (!$issue['fixable']) {
+            if (! $issue['fixable']) {
                 $unresolved++;
+
                 continue;
             }
-            
-            if (!$this->jsonOutput) {
+
+            if (! $this->jsonOutput) {
                 $this->info("Attempting to fix: {$issue['message']}");
             }
-            
+
             try {
                 switch ($issue['type']) {
                     case 'imbalance':
@@ -371,25 +374,28 @@ class ShardHealthCommand extends Command
                             }
                             $fixed++;
                         }
+
                         break;
-                        
+
                     case 'orphaned_keys':
                         $this->call('shard:cleanup');
                         $fixed++;
+
                         break;
                 }
             } catch (\Exception $e) {
-                if (!$this->jsonOutput) {
+                if (! $this->jsonOutput) {
                     $this->error("Failed to fix issue: {$e->getMessage()}");
                 }
                 $failed++;
                 $unresolved++;
             }
         }
-        
-        if (!$this->jsonOutput) {
+
+        if (! $this->jsonOutput) {
             $this->info("Fixed {$fixed} issue(s), {$failed} failed, {$unresolved} unresolved.");
         }
+
         return [
             'fixed' => $fixed,
             'failed' => $failed,
@@ -416,5 +422,4 @@ class ShardHealthCommand extends Command
 
         return [(string) $parts[1], (string) $parts[2]];
     }
-
 }

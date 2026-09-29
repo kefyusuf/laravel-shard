@@ -61,7 +61,7 @@ trait CrossShardQueryable
     public static function aggregateAcrossShards(string $column): array
     {
         $crossShard = static::crossShard();
-        
+
         return [
             'count' => $crossShard->count(),
             'sum' => $crossShard->sum($column),
@@ -109,7 +109,7 @@ trait CrossShardQueryable
     {
         $offset = ($page - 1) * $perPage;
         $total = static::countAcrossShards();
-        
+
         $results = static::crossShard()
             ->offset($offset)
             ->limit($perPage)
@@ -140,11 +140,11 @@ trait CrossShardQueryable
 
         foreach ($shards as $shard) {
             $query = static::on($shard)->newQuery();
-            
+
             foreach ($conditions as $column => $value) {
                 $query->where($column, $value);
             }
-            
+
             $totalUpdated += $query->update($updates);
         }
 
@@ -164,11 +164,11 @@ trait CrossShardQueryable
 
         foreach ($shards as $shard) {
             $query = static::on($shard)->newQuery();
-            
+
             foreach ($conditions as $column => $value) {
                 $query->where($column, $value);
             }
-            
+
             $totalDeleted += $query->delete();
         }
 

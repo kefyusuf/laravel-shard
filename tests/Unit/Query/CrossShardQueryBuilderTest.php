@@ -29,13 +29,13 @@ class CrossShardQueryBuilderTest extends TestCase
     protected function configureShardConnections(): void
     {
         $databaseDir = __DIR__ . '/../../tmp';
-        if (!is_dir($databaseDir)) {
+        if (! is_dir($databaseDir)) {
             mkdir($databaseDir, 0777, true);
         }
 
         foreach (['shard1', 'shard2', 'shard3'] as $shard) {
             $databasePath = $databaseDir . DIRECTORY_SEPARATOR . $shard . '.sqlite';
-            if (!file_exists($databasePath)) {
+            if (! file_exists($databasePath)) {
                 touch($databasePath);
             }
 

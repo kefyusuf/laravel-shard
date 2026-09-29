@@ -41,7 +41,7 @@ class ShardStatusCheckTest extends TestCase
     protected function seedShards(): void
     {
         $dir = __DIR__ . '/../../tmp';
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
 

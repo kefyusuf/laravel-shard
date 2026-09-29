@@ -11,7 +11,7 @@ class InstallCommandPayloadTest extends TestCase
 {
     public function test_respond_emits_valid_json_payload_in_json_mode(): void
     {
-        $command = new class extends InstallCommand {
+        $command = new class () extends InstallCommand {
             public string $capturedLine = '';
 
             public function exposedRespond(int $exitCode, bool $jsonOutput, array $payload): int
@@ -44,7 +44,7 @@ class InstallCommandPayloadTest extends TestCase
 
     public function test_invoke_sub_command_uses_call_silent_in_json_mode(): void
     {
-        $command = new class extends InstallCommand {
+        $command = new class () extends InstallCommand {
             public string $invokedMethod = '';
 
             public function exposedInvokeSubCommand(bool $jsonOutput, string $command, array $parameters = []): int
@@ -55,12 +55,14 @@ class InstallCommandPayloadTest extends TestCase
             public function call($command, array $arguments = []): int
             {
                 $this->invokedMethod = 'call';
+
                 return 0;
             }
 
             public function callSilent($command, array $arguments = []): int
             {
                 $this->invokedMethod = 'callSilent';
+
                 return 0;
             }
         };
@@ -72,7 +74,7 @@ class InstallCommandPayloadTest extends TestCase
 
     public function test_invoke_sub_command_uses_call_in_table_mode(): void
     {
-        $command = new class extends InstallCommand {
+        $command = new class () extends InstallCommand {
             public string $invokedMethod = '';
 
             public function exposedInvokeSubCommand(bool $jsonOutput, string $command, array $parameters = []): int
@@ -83,12 +85,14 @@ class InstallCommandPayloadTest extends TestCase
             public function call($command, array $arguments = []): int
             {
                 $this->invokedMethod = 'call';
+
                 return 0;
             }
 
             public function callSilent($command, array $arguments = []): int
             {
                 $this->invokedMethod = 'callSilent';
+
                 return 0;
             }
         };
@@ -100,7 +104,7 @@ class InstallCommandPayloadTest extends TestCase
 
     public function test_build_payload_for_successful_install(): void
     {
-        $command = new class extends InstallCommand {
+        $command = new class () extends InstallCommand {
             public function exposedBuildPayload(
                 string $status,
                 bool $publishedConfig,
@@ -129,7 +133,7 @@ class InstallCommandPayloadTest extends TestCase
 
     public function test_build_payload_includes_error_when_present(): void
     {
-        $command = new class extends InstallCommand {
+        $command = new class () extends InstallCommand {
             public function exposedBuildPayload(
                 string $status,
                 bool $publishedConfig,

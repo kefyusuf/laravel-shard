@@ -12,7 +12,7 @@ class HandlesJsonOutputTest extends TestCase
 {
     public function test_emit_json_outputs_pretty_printed_payload(): void
     {
-        $command = new class extends Command {
+        $command = new class () extends Command {
             use HandlesJsonOutput;
 
             public string $captured = '';
@@ -42,7 +42,7 @@ class HandlesJsonOutputTest extends TestCase
 
     public function test_make_error_payload_provides_standard_shape(): void
     {
-        $command = new class extends Command {
+        $command = new class () extends Command {
             use HandlesJsonOutput;
 
             public function handle(): int
