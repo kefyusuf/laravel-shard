@@ -44,6 +44,33 @@ class ShardableBuilder extends Builder
     }
 
     /**
+     * Execute a read operation on a shard, preferring its configured read replica.
+     *
+     * @param string $shardConnection
+     * @param callable $operation
+     * @return mixed
+     */
+    protected function runOnShardRead(string $shardConnection, callable $operation): mixed
+    {
+        return $this->runOnShard($this->readConnectionFor($shardConnection), $operation);
+    }
+
+    protected function readConnectionFor(string $shardConnection): string
+    {
+        return app(\Laravel\RedisShard\Database\ReadReplicaResolver::class)->resolve($shardConnection);
+    }
+
+    protected function cloneForShardRead(string $shardConnection): self
+    {
+        return $this->cloneForShard($this->readConnectionFor($shardConnection));
+    }
+
+    protected function buildGroupedShardReadQuery(string $shardConnection, array $values): self
+    {
+        return $this->buildGroupedShardQuery($this->readConnectionFor($shardConnection), $values);
+    }
+
+    /**
      * Build a query instance pinned to a specific shard connection.
      */
     protected function newQueryForShard(string $shardConnection): Builder
@@ -193,7 +220,7 @@ class ShardableBuilder extends Builder
         $results = $this->model->newCollection();
 
         foreach ($groups as $connection => $values) {
-            $builder = $this->buildGroupedShardQuery($connection, $values);
+            $builder = $this->buildGroupedShardReadQuery($connection, $values);
             $shardResults = $operation($builder);
 
             if ($shardResults instanceof Collection) {
@@ -281,7 +308,7 @@ class ShardableBuilder extends Builder
             $shardConnection = $this->resolveShardConnectionForKey($table, $id);
 
             if ($shardConnection !== null) {
-                return $this->runOnShard(
+                return $this->runOnShardRead(
                     $shardConnection,
                     fn () => parent::find($id, $columns)
                 );
@@ -337,7 +364,7 @@ class ShardableBuilder extends Builder
         // Query each shard for its respective IDs
         foreach ($shardGroups as $shardConnection => $shardIds) {
             if ($shardConnection !== 'unknown') {
-                $query = $this->newQueryForShard($shardConnection);
+                $query = $this->newQueryForShard($this->readConnectionFor($shardConnection));
                 /** @var \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model> $shardResults */
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
@@ -347,7 +374,7 @@ class ShardableBuilder extends Builder
             }
 
             foreach (ShardManager::getAvailableShards() as $availableShard) {
-                $query = $this->newQueryForShard($availableShard);
+                $query = $this->newQueryForShard($this->readConnectionFor($availableShard));
                 /** @var \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model> $shardResults */
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
@@ -373,7 +400,7 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('select the first matching record');
 
         if ($plan['mode'] === 'single') {
-            return $this->runOnShard(
+            return $this->runOnShardRead(
                 $plan['connection'],
                 fn () => parent::first($columns)
             );
@@ -394,7 +421,7 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('read records');
 
         if ($plan['mode'] === 'single') {
-            return $this->runOnShard($plan['connection'], fn () => parent::get($columns));
+            return $this->runOnShardRead($plan['connection'], fn () => parent::get($columns));
         }
 
         return $this->executeGroupedReads(
@@ -412,13 +439,13 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('count records');
 
         if ($plan['mode'] === 'single') {
-            return (int) $this->runOnShard($plan['connection'], fn (): int => (int) $this->toBase()->count($columns));
+            return (int) $this->runOnShardRead($plan['connection'], fn (): int => (int) $this->toBase()->count($columns));
         }
 
         $count = 0;
 
         foreach ($plan['groups'] as $connection => $values) {
-            $count += $this->buildGroupedShardQuery($connection, $values)->count($columns);
+            $count += $this->buildGroupedShardReadQuery($connection, $values)->count($columns);
         }
 
         return $count;
@@ -433,11 +460,11 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('check record existence');
 
         if ($plan['mode'] === 'single') {
-            return (bool) $this->runOnShard($plan['connection'], fn (): bool => $this->toBase()->exists());
+            return (bool) $this->runOnShardRead($plan['connection'], fn (): bool => $this->toBase()->exists());
         }
 
         foreach ($plan['groups'] as $connection => $values) {
-            if ($this->buildGroupedShardQuery($connection, $values)->exists()) {
+            if ($this->buildGroupedShardReadQuery($connection, $values)->exists()) {
                 return true;
             }
         }
@@ -454,13 +481,13 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('pluck records');
 
         if ($plan['mode'] === 'single') {
-            return $this->runOnShard($plan['connection'], fn () => parent::pluck($column, $key));
+            return $this->runOnShardRead($plan['connection'], fn () => parent::pluck($column, $key));
         }
 
         $results = new BaseCollection();
 
         foreach ($plan['groups'] as $connection => $values) {
-            $results = $results->merge($this->buildGroupedShardQuery($connection, $values)->pluck($column, $key));
+            $results = $results->merge($this->buildGroupedShardReadQuery($connection, $values)->pluck($column, $key));
         }
 
         return $results->values();
@@ -478,9 +505,9 @@ class ShardableBuilder extends Builder
         $page = $page ?: LengthAwarePaginator::resolveCurrentPage($pageName);
 
         if ($plan['mode'] === 'single') {
-            $totalRecords = $this->cloneForShard($plan['connection'])->count();
+            $totalRecords = $this->cloneForShardRead($plan['connection'])->count();
             $items = $totalRecords > 0
-                ? $this->cloneForShard($plan['connection'])->forPage($page, $perPage)->get($columns)
+                ? $this->cloneForShardRead($plan['connection'])->forPage($page, $perPage)->get($columns)
                 : $this->model->newCollection();
 
             return new LengthAwarePaginator(
@@ -519,11 +546,11 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('chunk records');
 
         if ($plan['mode'] === 'single') {
-            return $this->runOnShard($plan['connection'], fn () => parent::chunk($count, $callback));
+            return $this->runOnShardRead($plan['connection'], fn () => parent::chunk($count, $callback));
         }
 
         foreach ($plan['groups'] as $connection => $values) {
-            $continue = $this->buildGroupedShardQuery($connection, $values)->chunk($count, $callback);
+            $continue = $this->buildGroupedShardReadQuery($connection, $values)->chunk($count, $callback);
 
             if ($continue === false) {
                 return false;
@@ -542,12 +569,12 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('stream records');
 
         if ($plan['mode'] === 'single') {
-            return $this->cloneForShard($plan['connection'])->cursor();
+            return $this->cloneForShardRead($plan['connection'])->cursor();
         }
 
         return LazyCollection::make(function () use ($plan) {
             foreach ($plan['groups'] as $connection => $groupValues) {
-                foreach ($this->buildGroupedShardQuery($connection, $groupValues)->cursor() as $record) {
+                foreach ($this->buildGroupedShardReadQuery($connection, $groupValues)->cursor() as $record) {
                     yield $record;
                 }
             }

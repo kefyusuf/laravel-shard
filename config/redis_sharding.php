@@ -123,6 +123,23 @@ return [
     // Tables monitored by health/status/monitoring commands
     'monitored_tables' => ['users', 'orders', 'products'],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Read replicas
+    |--------------------------------------------------------------------------
+    |
+    | Map a shard connection to its read replica connection. Reads routed
+    | through the shard-aware builder (find, get, count, pluck, paginate,
+    | chunk, cursor, exists) then target the replica; writes always stay on
+    | the shard connection itself. Leave empty to disable.
+    |
+    */
+    'read_replicas' => [
+        'connections' => [
+            // 'shard1' => 'shard1_replica',
+        ],
+    ],
+
     // Rebalance data mover settings
     'rebalance' => [
         'enable_default_data_mover' => env('REDIS_SHARD_REBALANCE_ENABLE_MOVER', false),

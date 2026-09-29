@@ -142,6 +142,19 @@ class ShardManager
     }
 
     /**
+     * Resolve the read connection for a shard: the configured read replica
+     * when one is mapped, otherwise the shard connection itself.
+     */
+    public function readConnectionFor(string $shardConnection): string
+    {
+        $resolver = $this->container !== null
+            ? $this->container->make(\Laravel\RedisShard\Database\ReadReplicaResolver::class)
+            : new \Laravel\RedisShard\Database\ReadReplicaResolver($this->config);
+
+        return $resolver->resolve($shardConnection);
+    }
+
+    /**
      * Create a new shard.
      *
      * @param string $name
