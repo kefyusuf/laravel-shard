@@ -6,6 +6,7 @@ namespace Laravel\RedisShard\Console\Commands;
 
 use Illuminate\Console\Command;
 use Laravel\RedisShard\Console\Concerns\HandlesJsonOutput;
+use Laravel\RedisShard\Console\Concerns\PresentsReports;
 use Laravel\RedisShard\Console\Concerns\ValidatesOutputFormat;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
@@ -14,6 +15,7 @@ use Laravel\RedisShard\Models\ShardMetadata;
 class ShardStatusCommand extends Command
 {
     use HandlesJsonOutput;
+    use PresentsReports;
     use ValidatesOutputFormat;
 
     /**
@@ -59,7 +61,7 @@ class ShardStatusCommand extends Command
         if (empty($availableShards)) {
             if ($this->jsonOutput) {
                 $this->emitJson(
-                    $this->buildErrorPayload('No available shards found.', ['total_shards' => 0])
+                    $this->makeErrorPayload('No available shards found.', ['total_shards' => 0])
                 );
             } else {
                 $this->error('No available shards found.');
@@ -90,27 +92,42 @@ class ShardStatusCommand extends Command
     {
         $shards = ShardManager::getAvailableShards();
 
-        $data = [];
+        $rows = [];
         foreach ($shards as $shardName) {
             $meta = ShardMetadata::where('name', $shardName)->first();
-            $data[] = [
-                'Shard' => $shardName,
-                'Status' => $meta->status ?? 'unknown',
-                'Records' => $meta->record_count ?? 0,
-                'Last Rebalanced' => $meta?->last_rebalanced_at?->diffForHumans() ?? 'Never',
-                'Created' => $meta?->created_at?->diffForHumans() ?? 'Unknown',
+            $rows[] = [
+                'name' => $shardName,
+                'status' => $meta->status ?? 'unknown',
+                'records' => $meta->record_count ?? 0,
+                'last_rebalanced' => $meta?->last_rebalanced_at?->diffForHumans() ?? 'Never',
+                'created' => $meta?->created_at?->diffForHumans() ?? 'Unknown',
             ];
         }
 
-        if ($format === 'json') {
-            $this->emitJson($this->buildOverallPayload($shards));
-        } else {
-            $this->table(['Shard', 'Status', 'Records', 'Last Rebalanced', 'Created'], $data);
-            $defaultStrategy = $this->resolveDefaultStrategyName();
-            $this->info("\nTotal Shards: " . count($shards));
-            $this->info("Active Strategies: " . ShardManager::strategies()->count());
-            $this->info("Default Strategy: {$defaultStrategy}");
-        }
+        $this->renderReport([
+            'json' => [
+                'summary' => [
+                    'status' => 'ok',
+                    'total_shards' => count($shards),
+                    'active_strategies' => ShardManager::strategies()->count(),
+                    'default_strategy' => $this->resolveDefaultStrategyName(),
+                ],
+                'shards' => $rows,
+            ],
+            'headers' => ['Shard', 'Status', 'Records', 'Last Rebalanced', 'Created'],
+            'rows' => array_map(static fn (array $row): array => [
+                $row['name'],
+                $row['status'],
+                $row['records'],
+                $row['last_rebalanced'],
+                $row['created'],
+            ], $rows),
+            'meta' => [
+                "\nTotal Shards: " . count($shards),
+                'Active Strategies: ' . ShardManager::strategies()->count(),
+                'Default Strategy: ' . $this->resolveDefaultStrategyName(),
+            ],
+        ]);
 
         return 0;
     }
@@ -147,16 +164,21 @@ class ShardStatusCommand extends Command
             $row['Percentage'] = $totalKeys > 0 ? round(($keyCount / $totalKeys) * 100, 2) . '%' : '0%';
         }
 
-        if ($format === 'json') {
-            $this->emitJson([
-                'summary' => $this->buildTableSummaryPayload($table, $totalKeys, $data),
+        $this->renderReport([
+            'json' => [
+                'summary' => [
+                    'status' => 'ok',
+                    'table' => $table,
+                    'total_keys' => $totalKeys,
+                    'total_shards' => count($data),
+                ],
                 'shards' => $data,
-            ]);
-        } else {
-            $this->info("Table: {$table}");
-            $this->table(['Shard', 'Keys', 'Percentage'], $data);
-            $this->info("Total Keys: {$totalKeys}");
-        }
+            ],
+            'header' => ["Table: {$table}"],
+            'headers' => ['Shard', 'Keys', 'Percentage'],
+            'rows' => $data,
+            'meta' => ["Total Keys: {$totalKeys}"],
+        ]);
 
         return 0;
     }
@@ -176,7 +198,7 @@ class ShardStatusCommand extends Command
         if (! in_array($shardName, $availableShards)) {
             if ($format === 'json') {
                 $this->emitJson(
-                    $this->buildErrorPayload("Shard '{$shardName}' not found.", ['shard' => $shardName])
+                    $this->makeErrorPayload("Shard '{$shardName}' not found.", ['shard' => $shardName])
                 );
             } else {
                 $this->error("Shard '{$shardName}' not found.");
@@ -201,9 +223,15 @@ class ShardStatusCommand extends Command
             }
         }
 
-        if ($format === 'json') {
-            $this->emitJson([
-                'summary' => $this->buildShardSummaryPayload($shardName, $metadata?->status, $metadata?->record_count, $tableData),
+        $this->renderReport([
+            'json' => [
+                'summary' => [
+                    'status' => 'ok',
+                    'shard' => $shardName,
+                    'shard_status' => $metadata->status ?? 'unknown',
+                    'record_count' => $metadata->record_count ?? 0,
+                    'table_count' => count($tableData),
+                ],
                 'shard' => [
                     'name' => $shardName,
                     'status' => $metadata->status ?? 'unknown',
@@ -212,88 +240,21 @@ class ShardStatusCommand extends Command
                     'last_rebalanced_at' => $metadata?->last_rebalanced_at,
                 ],
                 'tables' => $tableData,
-            ]);
-        } else {
-            $this->info("Shard: {$shardName}");
-            $this->info("Status: " . ($metadata->status ?? 'unknown'));
-            $this->info("Record Count: " . ($metadata->record_count ?? 0));
-            $this->info("Created: " . ($metadata?->created_at?->diffForHumans() ?? 'Unknown'));
-            $this->info("Last Rebalanced: " . ($metadata?->last_rebalanced_at?->diffForHumans() ?? 'Never'));
-
-            if (! empty($tableData)) {
-                $this->line('');
-                $this->info('Table Distribution:');
-                $this->table(['Table', 'Keys'], $tableData);
-            }
-        }
+            ],
+            'header' => [
+                "Shard: {$shardName}",
+                'Status: ' . ($metadata->status ?? 'unknown'),
+                'Record Count: ' . ($metadata->record_count ?? 0),
+                'Created: ' . ($metadata?->created_at?->diffForHumans() ?? 'Unknown'),
+                'Last Rebalanced: ' . ($metadata?->last_rebalanced_at?->diffForHumans() ?? 'Never'),
+                '',
+                'Table Distribution:',
+            ],
+            'headers' => ['Table', 'Keys'],
+            'rows' => $tableData,
+        ]);
 
         return 0;
-    }
-
-    /**
-     * Build payload for overall status in JSON mode.
-     *
-     * @param array<string> $shards
-     * @return array<string, mixed>
-     */
-    protected function buildOverallPayload(array $shards): array
-    {
-        $items = [];
-        foreach ($shards as $shardName) {
-            $meta = ShardMetadata::where('name', $shardName)->first();
-            $items[] = [
-                'name' => $shardName,
-                'status' => $meta->status ?? 'unknown',
-                'records' => $meta->record_count ?? 0,
-                'last_rebalanced' => $meta?->last_rebalanced_at?->diffForHumans() ?? 'Never',
-                'created' => $meta?->created_at?->diffForHumans() ?? 'Unknown',
-            ];
-        }
-
-        return [
-            'summary' => [
-                'status' => 'ok',
-                'total_shards' => count($shards),
-                'active_strategies' => ShardManager::strategies()->count(),
-                'default_strategy' => $this->resolveDefaultStrategyName(),
-            ],
-            'shards' => $items,
-        ];
-    }
-
-    /**
-     * Build summary payload for table-level status in JSON mode.
-     */
-    protected function buildTableSummaryPayload(string $table, int $totalKeys, array $rows): array
-    {
-        return [
-            'status' => 'ok',
-            'table' => $table,
-            'total_keys' => $totalKeys,
-            'total_shards' => count($rows),
-        ];
-    }
-
-    /**
-     * Build summary payload for shard-level status in JSON mode.
-     */
-    protected function buildShardSummaryPayload(string $shardName, ?string $status, ?int $recordCount, array $tables): array
-    {
-        return [
-            'status' => 'ok',
-            'shard' => $shardName,
-            'shard_status' => $status ?? 'unknown',
-            'record_count' => $recordCount ?? 0,
-            'table_count' => count($tables),
-        ];
-    }
-
-    /**
-     * Build JSON error payload while preserving contextual summary fields.
-     */
-    protected function buildErrorPayload(string $error, array $summary = []): array
-    {
-        return $this->makeErrorPayload($error, $summary);
     }
 
     /**
