@@ -21,6 +21,7 @@ A modular shard locator for Laravel applications that provides deterministic sha
 - **Connection Pooling**: Optimized database connection management
 - **Cross-Shard Operations**: Support for cross-shard queries and aggregations
 - **Laravel Integration**: Native Laravel service provider with Artisan commands
+- **Octane Compatible**: Locator state is flushed between Octane worker requests automatically
 
 ## 📋 Requirements
 

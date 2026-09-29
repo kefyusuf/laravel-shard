@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Locators;
 
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
+use Laravel\RedisShard\Contracts\ShardStateResettable;
 
 /**
  * Process-local shard mapping store. Useful when the Redis module is disabled
  * but sticky mappings within a single worker/request are still wanted.
  */
-class ArrayShardLocator implements ShardLocatorInterface
+class ArrayShardLocator implements ShardLocatorInterface, ShardStateResettable
 {
     /**
      * @var array<string, string>
@@ -74,5 +75,11 @@ class ArrayShardLocator implements ShardLocatorInterface
     protected function mappingKey(string $table, mixed $key): string
     {
         return $table . ':' . (string) $key;
+    }
+
+    public function resetState(): void
+    {
+        $this->mappings = [];
+        $this->shardKeys = [];
     }
 }

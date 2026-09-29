@@ -16,10 +16,11 @@ use Laravel\RedisShard\Console\Commands\ShardReportCommand;
 use Laravel\RedisShard\Console\Commands\ShardStatusCommand;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
-use Laravel\RedisShard\Exceptions\ConfigurationException;
 use Laravel\RedisShard\Database\ShardConnection;
-use Laravel\RedisShard\Locators\ArrayShardLocator;
+use Laravel\RedisShard\Exceptions\ConfigurationException;
 use Laravel\RedisShard\Http\ShardHealthController;
+use Laravel\RedisShard\Listeners\FlushShardState;
+use Laravel\RedisShard\Locators\ArrayShardLocator;
 use Laravel\RedisShard\Middleware\ShardRouteMiddleware;
 use Laravel\RedisShard\Modules\QueueModule;
 use Laravel\RedisShard\Queue\RestoreShardContext;
@@ -114,7 +115,7 @@ class RedisShardServiceProvider extends ServiceProvider
             $config = config('redis_sharding', []);
             $connections = $config['connections'] ?? [];
 
-            if (is_array($connections) && !empty($connections)) {
+            if (is_array($connections) && ! empty($connections)) {
                 ConfigValidator::validate($config);
             }
         } catch (ConfigurationException $e) {
@@ -151,6 +152,8 @@ class RedisShardServiceProvider extends ServiceProvider
         $this->registerHealthRoute();
         \Laravel\RedisShard\Metrics\HealthRegistrar::register();
 
+        $this->registerOctaneStateFlush();
+
         /** @var ModuleRegistry $modules */
         $modules = $this->app->make(ModuleRegistry::class);
 
@@ -159,9 +162,23 @@ class RedisShardServiceProvider extends ServiceProvider
         }
     }
 
+    protected function registerOctaneStateFlush(): void
+    {
+        // Without Octane there are no long-lived worker requests, so the
+        // locator's process-local state is per-request anyway.
+        if (! class_exists(\Laravel\Octane\Events\RequestTerminated::class)) {
+            return;
+        }
+
+        $this->app->make('events')->listen(
+            \Laravel\Octane\Events\RequestTerminated::class,
+            FlushShardState::class
+        );
+    }
+
     protected function registerHealthRoute(): void
     {
-        if (!(bool) config('redis_sharding.metrics.enabled', false)) {
+        if (! (bool) config('redis_sharding.metrics.enabled', false)) {
             return;
         }
 
