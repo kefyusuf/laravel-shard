@@ -25,6 +25,7 @@ A modular shard locator for Laravel applications that provides deterministic sha
 - **Laravel Pulse Ready**: Shard routing distribution recorded and visualized on the Pulse dashboard when Pulse is installed
 - **Tenancy Bridge**: Use `stancl/tenancy` or `spatie/laravel-multitenancy` with the tenant id as shard key (`REDIS_SHARD_TENANCY_DRIVER`)
 - **Read Replicas**: Map per-shard replica connections — reads go to the replica, writes stay on the shard
+- **Cross-Shard Transactions**: `ShardManager::transaction()` coordinates begin/commit/rollback across shards (best-effort, documented)
 
 ## 📋 Requirements
 
