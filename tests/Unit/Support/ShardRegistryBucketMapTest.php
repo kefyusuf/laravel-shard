@@ -16,6 +16,9 @@ class ShardRegistryBucketMapTest extends TestCase
         parent::setUp();
 
         $this->registryPath = __DIR__ . '/../../tmp/bucket-registry-test.json';
+        if (! is_dir(__DIR__ . '/../../tmp')) {
+            mkdir(__DIR__ . '/../../tmp', 0777, true);
+        }
         @unlink($this->registryPath);
         @unlink($this->registryPath . '.lock');
         config()->set('redis_sharding.registry_path', $this->registryPath);
