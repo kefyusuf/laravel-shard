@@ -70,7 +70,7 @@ class ShardAnalyzeCommandTest extends TestCase
 
     public function test_table_mode_does_not_require_sample_size(): void
     {
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             public function locate(string $table, mixed $key): ?string
             {
                 return null;

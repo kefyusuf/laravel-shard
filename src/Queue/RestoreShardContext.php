@@ -38,7 +38,7 @@ class RestoreShardContext
     {
         $connections = config('redis_sharding.connections', []);
 
-        if (!array_key_exists($context->connection, $connections)) {
+        if (! array_key_exists($context->connection, $connections)) {
             throw new ShardingException(sprintf(
                 'Cannot restore shard context: connection "%s" is not configured.',
                 $context->connection

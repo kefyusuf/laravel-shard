@@ -1,0 +1,24 @@
+# Normalize line endings so the Docker-based toolchain (php-cs-fixer,
+# phpstan) sees the same files on Windows checkouts as on Linux CI.
+* text=auto
+
+*.php text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text
+*.yml text
+*.yaml text
+*.md text
+*.xml text
+*.neon text
+*.sh text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.sqlite binary

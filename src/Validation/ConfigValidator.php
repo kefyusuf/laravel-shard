@@ -33,17 +33,17 @@ class ConfigValidator
      */
     protected static function validateRedisConnection(array $config): void
     {
-        if (!isset($config['redis_connection'])) {
+        if (! isset($config['redis_connection'])) {
             throw new ConfigurationException('Redis connection name is required in redis_sharding.redis_connection');
         }
 
-        if (!is_string($config['redis_connection']) || empty($config['redis_connection'])) {
+        if (! is_string($config['redis_connection']) || empty($config['redis_connection'])) {
             throw new ConfigurationException('Redis connection name must be a non-empty string');
         }
 
         // Check if the Redis connection exists in Laravel's database config
         $redisConfig = config('database.redis');
-        if (!isset($redisConfig[$config['redis_connection']])) {
+        if (! isset($redisConfig[$config['redis_connection']])) {
             throw new ConfigurationException(
                 "Redis connection '{$config['redis_connection']}' is not configured in database.redis"
             );
@@ -59,7 +59,7 @@ class ConfigValidator
      */
     protected static function validateStrategies(array $config): void
     {
-        if (!isset($config['strategies']) || !is_array($config['strategies'])) {
+        if (! isset($config['strategies']) || ! is_array($config['strategies'])) {
             throw new ConfigurationException('Strategies configuration must be an array');
         }
 
@@ -68,19 +68,19 @@ class ConfigValidator
         }
 
         foreach ($config['strategies'] as $name => $class) {
-            if (!is_string($name) || empty($name)) {
+            if (! is_string($name) || empty($name)) {
                 throw new ConfigurationException('Strategy names must be non-empty strings');
             }
 
-            if (!is_string($class) || empty($class)) {
+            if (! is_string($class) || empty($class)) {
                 throw new ConfigurationException("Strategy class for '{$name}' must be a non-empty string");
             }
 
-            if (!class_exists($class)) {
+            if (! class_exists($class)) {
                 throw new ConfigurationException("Strategy class '{$class}' does not exist");
             }
 
-            if (!in_array('Laravel\RedisShard\Contracts\ShardStrategyInterface', class_implements($class) ?: [])) {
+            if (! in_array('Laravel\RedisShard\Contracts\ShardStrategyInterface', class_implements($class) ?: [])) {
                 throw new ConfigurationException(
                     "Strategy class '{$class}' must implement ShardStrategyInterface"
                 );
@@ -88,11 +88,11 @@ class ConfigValidator
         }
 
         // Validate default strategy
-        if (!isset($config['default_strategy'])) {
+        if (! isset($config['default_strategy'])) {
             throw new ConfigurationException('Default strategy must be specified in redis_sharding.default_strategy');
         }
 
-        if (!isset($config['strategies'][$config['default_strategy']])) {
+        if (! isset($config['strategies'][$config['default_strategy']])) {
             throw new ConfigurationException(
                 "Default strategy '{$config['default_strategy']}' is not defined in strategies array"
             );
@@ -108,7 +108,7 @@ class ConfigValidator
      */
     protected static function validateConnections(array $config): void
     {
-        if (!isset($config['connections']) || !is_array($config['connections'])) {
+        if (! isset($config['connections']) || ! is_array($config['connections'])) {
             throw new ConfigurationException('Connections configuration must be an array');
         }
 
@@ -117,11 +117,11 @@ class ConfigValidator
         }
 
         foreach ($config['connections'] as $name => $connectionConfig) {
-            if (!is_string($name) || empty($name)) {
+            if (! is_string($name) || empty($name)) {
                 throw new ConfigurationException('Connection names must be non-empty strings');
             }
 
-            if (!is_array($connectionConfig)) {
+            if (! is_array($connectionConfig)) {
                 throw new ConfigurationException("Connection configuration for '{$name}' must be an array");
             }
 
@@ -140,7 +140,7 @@ class ConfigValidator
     protected static function validateConnectionConfig(string $name, array $config): void
     {
         $driver = $config['driver'] ?? null;
-        if (!is_string($driver) || $driver === '') {
+        if (! is_string($driver) || $driver === '') {
             throw new ConfigurationException(
                 "Connection '{$name}' is missing required field 'driver'"
             );
@@ -150,15 +150,15 @@ class ConfigValidator
         if ($driver !== 'sqlite') {
             $requiredFields = ['host', 'database', 'username'];
         }
-        
+
         foreach ($requiredFields as $field) {
-            if (!isset($config[$field])) {
+            if (! isset($config[$field])) {
                 throw new ConfigurationException(
                     "Connection '{$name}' is missing required field '{$field}'"
                 );
             }
 
-            if (!is_string($config[$field]) && !is_numeric($config[$field])) {
+            if (! is_string($config[$field]) && ! is_numeric($config[$field])) {
                 throw new ConfigurationException(
                     "Connection '{$name}' field '{$field}' must be a string or number"
                 );
@@ -167,7 +167,7 @@ class ConfigValidator
 
         // Validate driver
         $supportedDrivers = ['mysql', 'pgsql', 'sqlite', 'sqlsrv'];
-        if (!in_array($driver, $supportedDrivers, true)) {
+        if (! in_array($driver, $supportedDrivers, true)) {
             throw new ConfigurationException(
                 "Connection '{$name}' has unsupported driver '{$driver}'. " .
                 "Supported drivers: " . implode(', ', $supportedDrivers)
@@ -194,17 +194,17 @@ class ConfigValidator
      */
     protected static function validateAutoProvisioning(array $config): void
     {
-        if (!isset($config['auto_provisioning'])) {
+        if (! isset($config['auto_provisioning'])) {
             return; // Auto-provisioning is optional
         }
 
         $autoConfig = $config['auto_provisioning'];
-        
-        if (!is_array($autoConfig)) {
+
+        if (! is_array($autoConfig)) {
             throw new ConfigurationException('Auto-provisioning configuration must be an array');
         }
 
-        if (isset($autoConfig['enabled']) && !is_bool($autoConfig['enabled'])) {
+        if (isset($autoConfig['enabled']) && ! is_bool($autoConfig['enabled'])) {
             throw new ConfigurationException('Auto-provisioning enabled flag must be a boolean');
         }
 
@@ -232,7 +232,7 @@ class ConfigValidator
      */
     protected static function validateCacheTtl(array $config): void
     {
-        if (!isset($config['cache_ttl'])) {
+        if (! isset($config['cache_ttl'])) {
             return; // Cache TTL is optional
         }
 
@@ -271,7 +271,7 @@ class ConfigValidator
         }
 
         // Check auto-provisioning
-        if (!($config['auto_provisioning']['enabled'] ?? false)) {
+        if (! ($config['auto_provisioning']['enabled'] ?? false)) {
             $recommendations[] = [
                 'type' => 'info',
                 'message' => 'Auto-provisioning is disabled. Enable it for automatic scaling',

@@ -29,7 +29,7 @@ class ShardContextDispatcher
 
     public static function capture(Model $model): ShardContext
     {
-        if (!in_array(Shardable::class, class_uses_recursive($model), true)) {
+        if (! in_array(Shardable::class, class_uses_recursive($model), true)) {
             throw new ShardingException(sprintf(
                 'Cannot capture shard context from %s: model is not Shardable.',
                 $model::class
@@ -59,13 +59,13 @@ class ShardContextDispatcher
 
     protected static function currentContext(): ?ShardContext
     {
-        if (!app()->bound('request')) {
+        if (! app()->bound('request')) {
             return null;
         }
 
         $connection = app('request')->attributes->get('shard_connection');
 
-        if (!is_string($connection) || $connection === '') {
+        if (! is_string($connection) || $connection === '') {
             return null;
         }
 

@@ -12,7 +12,7 @@ class ShardHealthCommandPayloadTest extends TestCase
 {
     public function test_build_summary_counts_severities_and_fixable_items(): void
     {
-        $command = new class extends ShardHealthCommand {
+        $command = new class () extends ShardHealthCommand {
             public function exposedBuildSummary(array $issues): array
             {
                 return $this->buildSummary($issues);
@@ -35,7 +35,7 @@ class ShardHealthCommandPayloadTest extends TestCase
 
     public function test_fix_payload_includes_exit_code_and_unresolved_count(): void
     {
-        $command = new class extends ShardHealthCommand {
+        $command = new class () extends ShardHealthCommand {
             public function exposedFixIssues(array $issues, ShardLocatorInterface $locator): array
             {
                 return $this->fixIssues($issues, $locator);
@@ -47,7 +47,7 @@ class ShardHealthCommandPayloadTest extends TestCase
             }
         };
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             public function locate(string $table, mixed $key): ?string
             {
                 return null;

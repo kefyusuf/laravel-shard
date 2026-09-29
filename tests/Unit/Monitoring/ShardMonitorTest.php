@@ -14,14 +14,14 @@ class ShardMonitorTest extends TestCase
     {
         config()->set('redis_sharding.redis_connection', 'telemetry');
 
-        $redis = new class {
+        $redis = new class () {
             public ?string $usedConnection = null;
 
             public function connection(string $name)
             {
                 $this->usedConnection = $name;
 
-                return new class {
+                return new class () {
                     public function command(string $name, array $parameters = []): string
                     {
                         return 'PONG';
@@ -32,7 +32,7 @@ class ShardMonitorTest extends TestCase
 
         $this->app->instance('redis', $redis);
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             public function locate(string $table, mixed $key): ?string
             {
                 return null;
@@ -54,7 +54,7 @@ class ShardMonitorTest extends TestCase
             }
         };
 
-        $monitor = new class($locator) extends ShardMonitor {
+        $monitor = new class ($locator) extends ShardMonitor {
             public function exposedCheckRedisHealth(): string
             {
                 return $this->checkRedisHealth();

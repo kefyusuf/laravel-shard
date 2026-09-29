@@ -13,7 +13,7 @@ class ShardStatusCommandTest extends TestCase
     {
         config()->set('redis_sharding.monitored_tables', ['invoices']);
 
-        $locator = new class implements ShardLocatorInterface {
+        $locator = new class () implements ShardLocatorInterface {
             public function locate(string $table, mixed $key): ?string
             {
                 return null;

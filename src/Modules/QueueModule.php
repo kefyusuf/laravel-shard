@@ -39,7 +39,7 @@ class QueueModule
      */
     public function register(): void
     {
-        if (!$this->isAvailable()) {
+        if (! $this->isAvailable()) {
             return;
         }
 
@@ -48,7 +48,7 @@ class QueueModule
 
     public function boot(): void
     {
-        if (!$this->isAvailable()) {
+        if (! $this->isAvailable()) {
             return;
         }
 

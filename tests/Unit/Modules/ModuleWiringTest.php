@@ -85,7 +85,7 @@ class ModuleWiringTest extends Orchestra
 
     public function test_redis_module_uses_redis_locator_when_enabled(): void
     {
-        if (!class_exists(\Illuminate\Redis\RedisManager::class)) {
+        if (! class_exists(\Illuminate\Redis\RedisManager::class)) {
             $this->markTestSkipped('illuminate/redis is not installed.');
         }
 

@@ -3,7 +3,6 @@ parameters:
     paths:
         - src
     excludePaths:
-        - src/Console/Commands/*
         # Optional Laravel Health adapter; framework health classes are not
         # always present in package installs.
         - src/Metrics/LaravelShardHealthCheck.php

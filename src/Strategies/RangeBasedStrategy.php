@@ -36,13 +36,13 @@ class RangeBasedStrategy implements ShardStrategyInterface
 
         // Convert key to numeric value
         $numericKey = $this->getNumericValue($key);
-        
+
         // Determine which range the key falls into
         $rangeIndex = (int) floor($numericKey / $this->rangeSize);
-        
+
         // Map the range index to a shard index
         $shardIndex = $rangeIndex % count($availableShards);
-        
+
         // Return the shard at that index
         return $availableShards[$shardIndex];
     }
@@ -85,6 +85,7 @@ class RangeBasedStrategy implements ShardStrategyInterface
     public function setRangeSize(int $rangeSize): self
     {
         $this->rangeSize = $rangeSize;
+
         return $this;
     }
 

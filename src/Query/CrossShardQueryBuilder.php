@@ -138,6 +138,7 @@ class CrossShardQueryBuilder
     public function limit(int $limit): self
     {
         $this->limit = $limit;
+
         return $this;
     }
 
@@ -150,6 +151,7 @@ class CrossShardQueryBuilder
     public function offset(int $offset): self
     {
         $this->offset = $offset;
+
         return $this;
     }
 
@@ -162,6 +164,7 @@ class CrossShardQueryBuilder
     public function select(array $columns): self
     {
         $this->selects = $columns;
+
         return $this;
     }
 
@@ -179,12 +182,12 @@ class CrossShardQueryBuilder
             $query = $this->buildShardQuery($shard);
             /** @var Collection<int, Model> $shardResults */
             $shardResults = $query->get();
-            
+
             // Add shard information to each model
             foreach ($shardResults as $model) {
                 $model->setAttribute('_shard', $shard);
             }
-            
+
             $results = $results->merge($shardResults);
         }
 
@@ -201,6 +204,7 @@ class CrossShardQueryBuilder
     {
         $this->limit(1);
         $results = $this->get();
+
         return $results->first();
     }
 
@@ -257,7 +261,7 @@ class CrossShardQueryBuilder
             $query = $this->buildShardQuery($shard);
             $shardSum = $query->sum($column) ?: 0;
             $shardCount = $query->count();
-            
+
             $totalSum += $shardSum;
             $totalCount += $shardCount;
         }
@@ -279,7 +283,7 @@ class CrossShardQueryBuilder
         foreach ($shards as $shard) {
             $query = $this->buildShardQuery($shard);
             $shardMax = $query->max($column);
-            
+
             if ($max === null || $shardMax > $max) {
                 $max = $shardMax;
             }
@@ -302,7 +306,7 @@ class CrossShardQueryBuilder
         foreach ($shards as $shard) {
             $query = $this->buildShardQuery($shard);
             $shardMin = $query->min($column);
-            
+
             if ($min === null || $shardMin < $min) {
                 $min = $shardMin;
             }
@@ -335,12 +339,15 @@ class CrossShardQueryBuilder
             switch ($where['type']) {
                 case 'basic':
                     $query->where($where['column'], $where['operator'], $where['value']);
+
                     break;
                 case 'in':
                     $query->whereIn($where['column'], $where['values']);
+
                     break;
                 case 'like':
                     $query->where($where['column'], 'LIKE', $where['value']);
+
                     break;
             }
         }

@@ -37,7 +37,7 @@ class ShardDiagnosticReport
             $meta = $metadata[$name] ?? null;
             $probe = $this->probeShard($name);
 
-            if (!$probe['reachable']) {
+            if (! $probe['reachable']) {
                 $issues[] = "Shard '{$name}' is unreachable: {$probe['error']}";
             } elseif ($probe['latency_ms'] !== null && $probe['latency_ms'] > 500) {
                 $issues[] = sprintf("Shard '%s' is slow (%.1f ms)", $name, $probe['latency_ms']);
@@ -68,7 +68,7 @@ class ShardDiagnosticReport
         }
 
         $modules = $this->modules();
-        if ($modules['redis'] && !class_exists(\Illuminate\Redis\RedisManager::class)) {
+        if ($modules['redis'] && ! class_exists(\Illuminate\Redis\RedisManager::class)) {
             $issues[] = 'Redis module is enabled but illuminate/redis is not installed';
         }
 

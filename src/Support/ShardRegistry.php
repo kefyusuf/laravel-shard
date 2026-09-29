@@ -16,14 +16,14 @@ class ShardRegistry
         $path = static::resolvePath();
         $directory = dirname($path);
 
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0700, true);
         } else {
             @chmod($directory, 0700);
         }
 
         $payload = json_encode($connections, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        if (!is_string($payload)) {
+        if (! is_string($payload)) {
             throw new \RuntimeException('Failed to encode shard registry payload.');
         }
 
@@ -37,10 +37,11 @@ class ShardRegistry
 
             @chmod($tempPath, 0640);
 
-            if (!@rename($tempPath, $path)) {
+            if (! @rename($tempPath, $path)) {
                 @unlink($path);
-                if (!@rename($tempPath, $path)) {
+                if (! @rename($tempPath, $path)) {
                     @unlink($tempPath);
+
                     throw new \RuntimeException('Failed to atomically write shard registry file.');
                 }
             }
@@ -54,7 +55,7 @@ class ShardRegistry
     {
         $path = static::resolvePath();
 
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return [];
         }
 
@@ -69,7 +70,7 @@ class ShardRegistry
         }
 
         $decoded = json_decode($contents, true);
-        if (!is_array($decoded)) {
+        if (! is_array($decoded)) {
             return [];
         }
 
@@ -117,7 +118,7 @@ class ShardRegistry
         }
 
         try {
-            if (!flock($lockHandle, $lockType)) {
+            if (! flock($lockHandle, $lockType)) {
                 throw new \RuntimeException('Unable to acquire registry file lock.');
             }
 

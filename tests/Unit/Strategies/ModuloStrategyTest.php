@@ -25,18 +25,18 @@ class ModuloStrategyTest extends TestCase
     public function test_it_determines_shard_for_numeric_keys(): void
     {
         $shards = ['shard1', 'shard2', 'shard3'];
-        
+
         // Test consistent assignment
         $shard1 = $this->strategy->determine('users', 1, $shards);
         $shard2 = $this->strategy->determine('users', 1, $shards);
         $this->assertEquals($shard1, $shard2);
-        
+
         // Test different keys get distributed
         $results = [];
         for ($i = 1; $i <= 9; $i++) {
             $results[] = $this->strategy->determine('users', $i, $shards);
         }
-        
+
         // Should use all shards
         $uniqueShards = array_unique($results);
         $this->assertCount(3, $uniqueShards);
@@ -45,10 +45,10 @@ class ModuloStrategyTest extends TestCase
     public function test_it_determines_shard_for_string_keys(): void
     {
         $shards = ['shard1', 'shard2', 'shard3'];
-        
+
         $shard1 = $this->strategy->determine('users', 'user@example.com', $shards);
         $shard2 = $this->strategy->determine('users', 'user@example.com', $shards);
-        
+
         $this->assertEquals($shard1, $shard2);
         $this->assertContains($shard1, $shards);
     }
@@ -57,13 +57,13 @@ class ModuloStrategyTest extends TestCase
     {
         $shards = ['shard1', 'shard2', 'shard3'];
         $distribution = [];
-        
+
         // Test with 300 keys
         for ($i = 1; $i <= 300; $i++) {
             $shard = $this->strategy->determine('users', $i, $shards);
             $distribution[$shard] = ($distribution[$shard] ?? 0) + 1;
         }
-        
+
         // Each shard should get exactly 100 keys with modulo strategy
         foreach ($shards as $shard) {
             $this->assertEquals(100, $distribution[$shard]);
@@ -74,14 +74,14 @@ class ModuloStrategyTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('No available shards');
-        
+
         $this->strategy->determine('users', 1, []);
     }
 
     public function test_it_handles_different_data_types(): void
     {
         $shards = ['shard1', 'shard2'];
-        
+
         // Test with different data types
         $testCases = [
             123,
@@ -91,11 +91,11 @@ class ModuloStrategyTest extends TestCase
             true,
             false,
         ];
-        
+
         foreach ($testCases as $key) {
             $shard = $this->strategy->determine('users', $key, $shards);
             $this->assertContains($shard, $shards);
-            
+
             // Test consistency
             $shard2 = $this->strategy->determine('users', $key, $shards);
             $this->assertEquals($shard, $shard2);
@@ -105,7 +105,7 @@ class ModuloStrategyTest extends TestCase
     public function test_it_works_with_single_shard(): void
     {
         $shards = ['shard1'];
-        
+
         $shard = $this->strategy->determine('users', 123, $shards);
         $this->assertEquals('shard1', $shard);
     }

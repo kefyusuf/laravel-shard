@@ -35,7 +35,7 @@ final class ShardContext
      */
     public static function fromArray(array $payload): ?self
     {
-        if (!isset($payload['connection'], $payload['table'])) {
+        if (! isset($payload['connection'], $payload['table'])) {
             return null;
         }
 

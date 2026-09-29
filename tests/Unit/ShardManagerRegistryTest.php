@@ -24,7 +24,7 @@ class ShardManagerRegistryTest extends TestCase
 
         $this->registryPath = __DIR__ . '/../tmp/registry-test.json';
         $this->runtimeShardPath = __DIR__ . '/../tmp/runtime-shard.sqlite';
-        if (!is_dir(dirname($this->registryPath))) {
+        if (! is_dir(dirname($this->registryPath))) {
             mkdir(dirname($this->registryPath), 0777, true);
         }
 

@@ -213,3 +213,49 @@ jobs:
           PHP_VERSION=8.4 docker compose up -d redis
           PHP_VERSION=8.4 docker compose stop redis
           PHP_VERSION=8.4 docker compose run --rm --no-deps app bash -lc "git config --global --add safe.directory /app && vendor/bin/phpunit tests/Integration/ShardManagerTest.php tests/Integration/ShardLocatorTest.php tests/Unit/ShardLocatorResilienceTest.php --colors=never"
+
+  coverage:
+    runs-on: ubuntu-latest
+    name: Test Coverage
+
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, redis
+          coverage: pcov
+
+      - name: Install dependencies
+        run: |
+          composer config policy.advisories.block false
+          composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" "phpunit/phpunit:^12.0" --dev --no-interaction --no-update
+          composer update --with-all-dependencies --prefer-stable --prefer-dist --no-interaction --no-audit
+
+      - name: Execute tests with coverage
+        run: vendor/bin/phpunit --coverage-text --coverage-clover coverage.xml
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_SHARD_MODULE_REDIS: 'true'
+          REDIS_SHARD_MODULE_QUEUE: 'true'
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-clover
+          path: coverage.xml

@@ -11,7 +11,7 @@ class CreateShardCommandPayloadTest extends TestCase
 {
     public function test_respond_emits_valid_json_payload_in_json_mode(): void
     {
-        $command = new class extends CreateShardCommand {
+        $command = new class () extends CreateShardCommand {
             public string $capturedLine = '';
 
             public function exposedRespond(int $exitCode, bool $jsonOutput, array $payload): int
@@ -43,7 +43,7 @@ class CreateShardCommandPayloadTest extends TestCase
 
     public function test_build_success_payload_has_expected_schema(): void
     {
-        $command = new class extends CreateShardCommand {
+        $command = new class () extends CreateShardCommand {
             public function exposedBuildSuccessPayload(
                 string $name,
                 string $driver,
@@ -66,7 +66,7 @@ class CreateShardCommandPayloadTest extends TestCase
 
     public function test_build_error_payload_has_expected_schema(): void
     {
-        $command = new class extends CreateShardCommand {
+        $command = new class () extends CreateShardCommand {
             public function exposedBuildErrorPayload(string $error, array $summary = []): array
             {
                 return $this->buildErrorPayload($error, $summary);
@@ -82,7 +82,7 @@ class CreateShardCommandPayloadTest extends TestCase
 
     public function test_invoke_sub_command_uses_call_silent_in_json_mode(): void
     {
-        $command = new class extends CreateShardCommand {
+        $command = new class () extends CreateShardCommand {
             public string $invokedMethod = '';
 
             public function exposedInvokeSubCommand(bool $jsonOutput, string $command, array $parameters = []): int
@@ -93,12 +93,14 @@ class CreateShardCommandPayloadTest extends TestCase
             public function call($command, array $arguments = []): int
             {
                 $this->invokedMethod = 'call';
+
                 return 0;
             }
 
             public function callSilent($command, array $arguments = []): int
             {
                 $this->invokedMethod = 'callSilent';
+
                 return 0;
             }
         };
@@ -110,7 +112,7 @@ class CreateShardCommandPayloadTest extends TestCase
 
     public function test_invoke_sub_command_uses_call_in_table_mode(): void
     {
-        $command = new class extends CreateShardCommand {
+        $command = new class () extends CreateShardCommand {
             public string $invokedMethod = '';
 
             public function exposedInvokeSubCommand(bool $jsonOutput, string $command, array $parameters = []): int
@@ -121,12 +123,14 @@ class CreateShardCommandPayloadTest extends TestCase
             public function call($command, array $arguments = []): int
             {
                 $this->invokedMethod = 'call';
+
                 return 0;
             }
 
             public function callSilent($command, array $arguments = []): int
             {
                 $this->invokedMethod = 'callSilent';
+
                 return 0;
             }
         };

@@ -54,6 +54,7 @@ class ShardCache
     public function getShardConnection(string $table, mixed $key): ?string
     {
         $cacheKey = $this->generateCacheKey('connection', $table, $key);
+
         return $this->cache->get($cacheKey);
     }
 
@@ -82,6 +83,7 @@ class ShardCache
     public function getShardMetadata(string $shardName): ?array
     {
         $cacheKey = $this->generateCacheKey('metadata', $shardName);
+
         return $this->cache->get($cacheKey);
     }
 
@@ -108,6 +110,7 @@ class ShardCache
     public function getAvailableShards(): ?array
     {
         $cacheKey = $this->generateCacheKey('available_shards');
+
         return $this->cache->get($cacheKey);
     }
 
@@ -134,6 +137,7 @@ class ShardCache
     public function getStrategy(string $strategyName): mixed
     {
         $cacheKey = $this->generateCacheKey('strategy', $strategyName);
+
         return $this->cache->get($cacheKey);
     }
 
@@ -266,7 +270,7 @@ class ShardCache
     protected function generateCacheKey(string $type, ...$parts): string
     {
         $keyParts = [$this->prefix, $type];
-        
+
         foreach ($parts as $part) {
             if (is_array($part) || is_object($part)) {
                 $keyParts[] = md5(serialize($part));
@@ -274,7 +278,7 @@ class ShardCache
                 $keyParts[] = (string) $part;
             }
         }
-        
+
         return implode(':', $keyParts);
     }
 
@@ -291,7 +295,7 @@ class ShardCache
     protected function rememberTrackedKey(string $cacheKey): void
     {
         $keys = $this->getTrackedKeys();
-        if (!in_array($cacheKey, $keys, true)) {
+        if (! in_array($cacheKey, $keys, true)) {
             $keys[] = $cacheKey;
             $this->cache->put($this->indexKey, $keys, $this->defaultTtl * 24);
         }
@@ -306,6 +310,7 @@ class ShardCache
 
         if (empty($keys)) {
             $this->cache->forget($this->indexKey);
+
             return;
         }
 

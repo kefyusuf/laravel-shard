@@ -13,7 +13,7 @@ class ShardableTraitTest extends TestCase
 {
     public function test_it_uses_shardable_builder_for_model_queries(): void
     {
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -26,7 +26,7 @@ class ShardableTraitTest extends TestCase
 
     public function test_it_can_set_explicit_shard_connection(): void
     {
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';

@@ -17,7 +17,7 @@ class ShardableRequestConnectionTest extends TestCase
         $request->attributes->set('shard_connection', 'testing');
         $this->app->instance('request', $request);
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';
@@ -36,7 +36,7 @@ class ShardableRequestConnectionTest extends TestCase
         $request->attributes->set('shard_connection', 'testing');
         $this->app->instance('request', $request);
 
-        $model = new class extends Model {
+        $model = new class () extends Model {
             use Shardable;
 
             protected $table = 'users';

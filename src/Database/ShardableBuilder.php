@@ -6,11 +6,11 @@ namespace Laravel\RedisShard\Database;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\LazyCollection;
-use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Laravel\RedisShard\Facades\ShardManager;
+use Illuminate\Support\Collection as BaseCollection;
+use Illuminate\Support\LazyCollection;
 use Laravel\RedisShard\Exceptions\ShardingException;
+use Laravel\RedisShard\Facades\ShardManager;
 
 class ShardableBuilder extends Builder
 {
@@ -342,6 +342,7 @@ class ShardableBuilder extends Builder
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
                 $results = $results->merge($shardResults);
+
                 continue;
             }
 

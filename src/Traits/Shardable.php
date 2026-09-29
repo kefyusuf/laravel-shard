@@ -204,7 +204,7 @@ trait Shardable
 
     protected function getRequestShardConnection(): ?string
     {
-        if (!app()->bound('request')) {
+        if (! app()->bound('request')) {
             return null;
         }
 

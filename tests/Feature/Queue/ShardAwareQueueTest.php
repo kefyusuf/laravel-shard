@@ -106,7 +106,7 @@ class ShardAwareQueueTest extends TestCase
             $table->string('name');
         });
 
-        $job = new class(new ShardContext('users', 1, 'shard1', 'id')) extends ShardAwareJob {
+        $job = new class (new ShardContext('users', 1, 'shard1', 'id')) extends ShardAwareJob {
             public ?string $seenConnection = null;
 
             public function __construct(ShardContext $context)
@@ -118,7 +118,7 @@ class ShardAwareQueueTest extends TestCase
             {
                 $this->requireShardContext();
 
-                $model = new class extends Model {
+                $model = new class () extends Model {
                     use Shardable;
 
                     protected $table = 'users';
@@ -149,7 +149,7 @@ class ShardAwareQueueTest extends TestCase
 
     public function test_shard_aware_job_requires_context(): void
     {
-        $job = new class extends ShardAwareJob {
+        $job = new class () extends ShardAwareJob {
             public function handle(): void
             {
                 $this->requireShardContext();
@@ -175,7 +175,7 @@ class ShardAwareQueueTest extends TestCase
 
     public function test_capture_context_rejects_non_shardable_model(): void
     {
-        $model = new class extends Model {
+        $model = new class () extends Model {
             protected $table = 'users';
             public $timestamps = false;
         };
@@ -188,7 +188,7 @@ class ShardAwareQueueTest extends TestCase
 
     protected function makeShardableUser(): Model
     {
-        return new class extends Model {
+        return new class () extends Model {
             use Shardable;
 
             protected $table = 'users';

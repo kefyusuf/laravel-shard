@@ -87,10 +87,10 @@ class ShardAnalyzeCommand extends Command
      */
     protected function analyzeOverall(ShardLocatorInterface $locator, ?string $strategy, int $sampleSize, string $format): int
     {
-        if (!$this->jsonOutput) {
+        if (! $this->jsonOutput) {
             $this->info('Analyzing shard distribution...');
         }
-        
+
         $shards = ShardManager::getAvailableShards();
         if (empty($shards)) {
             if ($this->jsonOutput) {
@@ -107,19 +107,19 @@ class ShardAnalyzeCommand extends Command
         }
 
         $strategies = $strategy ? [$strategy] : ShardManager::strategies()->keys()->toArray();
-        
+
         $results = [];
         $errors = [];
-        
+
         foreach ($strategies as $strategyName) {
-            if (!$this->jsonOutput) {
+            if (! $this->jsonOutput) {
                 $this->line("Testing strategy: {$strategyName}");
             }
-            
+
             try {
                 $strategyInstance = ShardManager::strategy($strategyName);
                 $distribution = $this->testDistribution($strategyInstance, $shards, $sampleSize);
-                
+
                 $results[$strategyName] = [
                     'distribution' => $distribution,
                     'balance_score' => $this->calculateBalanceScore($distribution),
@@ -131,20 +131,21 @@ class ShardAnalyzeCommand extends Command
                     'error' => $e->getMessage(),
                 ];
 
-                if (!$this->jsonOutput) {
+                if (! $this->jsonOutput) {
                     $this->error("Failed to test strategy {$strategyName}: {$e->getMessage()}");
                 }
+
                 continue;
             }
         }
-        
+
         if ($format === 'json') {
             $payload = [
                 'summary' => $this->buildOverallSummary($results, $sampleSize),
                 'results' => $results,
             ];
 
-            if (!empty($errors)) {
+            if (! empty($errors)) {
                 $payload['errors'] = $errors;
             }
 
@@ -152,7 +153,7 @@ class ShardAnalyzeCommand extends Command
         } else {
             $this->displayAnalysisResults($results, $sampleSize);
         }
-        
+
         return 0;
     }
 
@@ -166,10 +167,10 @@ class ShardAnalyzeCommand extends Command
      */
     protected function analyzeTable(string $table, ShardLocatorInterface $locator, string $format): int
     {
-        if (!$this->jsonOutput) {
+        if (! $this->jsonOutput) {
             $this->info("Analyzing table: {$table}");
         }
-        
+
         $shards = ShardManager::getAvailableShards();
         if (empty($shards)) {
             if ($this->jsonOutput) {
@@ -186,14 +187,14 @@ class ShardAnalyzeCommand extends Command
 
         $distribution = [];
         $totalKeys = 0;
-        
+
         foreach ($shards as $shardName) {
             $keys = $locator->getKeysForShard($table, $shardName);
             $keyCount = count($keys);
             $distribution[$shardName] = $keyCount;
             $totalKeys += $keyCount;
         }
-        
+
         if ($totalKeys === 0) {
             if ($this->jsonOutput) {
                 $this->emitJson([
@@ -215,7 +216,7 @@ class ShardAnalyzeCommand extends Command
 
             return 0;
         }
-        
+
         $analysis = [
             'table' => $table,
             'total_keys' => $totalKeys,
@@ -225,7 +226,7 @@ class ShardAnalyzeCommand extends Command
             'std_deviation' => $this->calculateStandardDeviation($distribution),
             'recommendations' => $this->generateRecommendations($distribution, $totalKeys),
         ];
-        
+
         if ($format === 'json') {
             $this->emitJson([
                 'summary' => $this->buildTableSummary($analysis),
@@ -234,7 +235,7 @@ class ShardAnalyzeCommand extends Command
         } else {
             $this->displayTableAnalysis($analysis);
         }
-        
+
         return 0;
     }
 
@@ -251,20 +252,20 @@ class ShardAnalyzeCommand extends Command
         $distribution = array_fill_keys($shards, 0);
         $numericSamples = intdiv($sampleSize, 2);
         $stringSamples = $sampleSize - $numericSamples;
-        
+
         // Test with numeric keys
         for ($i = 1; $i <= $numericSamples; $i++) {
             $shard = $strategy->determine('test_table', $i, $shards);
             $distribution[$shard]++;
         }
-        
+
         // Test with string keys
         for ($i = 1; $i <= $stringSamples; $i++) {
             $key = "user_{$i}@example.com";
             $shard = $strategy->determine('test_table', $key, $shards);
             $distribution[$shard]++;
         }
-        
+
         return $distribution;
     }
 
@@ -280,15 +281,15 @@ class ShardAnalyzeCommand extends Command
         if ($total === 0) {
             return 100.0;
         }
-        
+
         $ideal = $total / count($distribution);
         $maxDeviation = 0;
-        
+
         foreach ($distribution as $count) {
             $deviation = abs($count - $ideal) / $ideal;
             $maxDeviation = max($maxDeviation, $deviation);
         }
-        
+
         return max(0, 100 - ($maxDeviation * 100));
     }
 
@@ -304,14 +305,14 @@ class ShardAnalyzeCommand extends Command
         if ($count === 0) {
             return 0.0;
         }
-        
+
         $mean = array_sum($distribution) / $count;
         $variance = 0;
-        
+
         foreach ($distribution as $value) {
             $variance += pow($value - $mean, 2);
         }
-        
+
         return sqrt($variance / $count);
     }
 
@@ -327,7 +328,7 @@ class ShardAnalyzeCommand extends Command
         $recommendations = [];
         $ideal = $totalKeys / count($distribution);
         $threshold = $ideal * 0.2; // 20% threshold
-        
+
         foreach ($distribution as $shard => $count) {
             $deviation = abs($count - $ideal);
             if ($deviation > $threshold) {
@@ -339,11 +340,11 @@ class ShardAnalyzeCommand extends Command
                 }
             }
         }
-        
+
         if (empty($recommendations)) {
             $recommendations[] = "Distribution looks good - no immediate action needed";
         }
-        
+
         return $recommendations;
     }
 
@@ -358,7 +359,7 @@ class ShardAnalyzeCommand extends Command
     {
         $this->info("Strategy Performance Analysis (Sample Size: {$sampleSize})");
         $this->line('');
-        
+
         $tableData = [];
         foreach ($results as $strategy => $data) {
             $tableData[] = [
@@ -369,9 +370,9 @@ class ShardAnalyzeCommand extends Command
                 'Max Keys' => max($data['distribution']),
             ];
         }
-        
+
         $this->table(['Strategy', 'Balance Score', 'Std Deviation', 'Min Keys', 'Max Keys'], $tableData);
-        
+
         // Show detailed distribution for each strategy
         foreach ($results as $strategy => $data) {
             $this->line('');
@@ -402,7 +403,7 @@ class ShardAnalyzeCommand extends Command
         $this->info("Balance Score: " . round($analysis['balance_score'], 2) . '%');
         $this->info("Standard Deviation: " . round($analysis['std_deviation'], 2));
         $this->line('');
-        
+
         $tableData = [];
         foreach ($analysis['distribution'] as $shard => $count) {
             $percentage = round(($count / $analysis['total_keys']) * 100, 2);
@@ -412,9 +413,9 @@ class ShardAnalyzeCommand extends Command
                 'Percentage' => $percentage . '%',
             ];
         }
-        
+
         $this->table(['Shard', 'Keys', 'Percentage'], $tableData);
-        
+
         $this->line('');
         $this->info('Recommendations:');
         foreach ($analysis['recommendations'] as $recommendation) {
