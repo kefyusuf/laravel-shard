@@ -110,6 +110,66 @@ class DispatchShardedTest extends TestCase
         $this->assertSame('Bob', DB::connection('shard2')->table('users')->where('email', 'b@example.com')->value('name'));
     }
 
+    public function test_upsert_with_empty_unique_by_fails_fast_before_writing_to_any_shard(): void
+    {
+        $shard1 = $this->prepareShardDatabase('upsert-empty-uniqueby-a');
+        $shard2 = $this->prepareShardDatabase('upsert-empty-uniqueby-b');
+
+        $this->configureConnection('shard1', $shard1);
+        $this->configureConnection('shard2', $shard2);
+
+        config()->set('redis_sharding.connections', [
+            'shard1' => ['driver' => 'sqlite', 'database' => $shard1, 'prefix' => ''],
+            'shard2' => ['driver' => 'sqlite', 'database' => $shard2, 'prefix' => ''],
+        ]);
+
+        foreach (['shard1', 'shard2'] as $connection) {
+            DB::purge($connection);
+            Schema::connection($connection)->dropIfExists('users');
+            Schema::connection($connection)->create('users', function ($table): void {
+                $table->increments('id');
+                $table->string('email')->unique();
+                $table->string('name');
+            });
+        }
+
+        $locator = $this->app->make(\Laravel\RedisShard\Contracts\ShardLocatorInterface::class);
+        $locator->register('users', 'a@example.com', 'shard1');
+        $locator->register('users', 'b@example.com', 'shard2');
+
+        $model = new class extends Model {
+            use Shardable;
+
+            protected $table = 'users';
+            public $timestamps = false;
+            protected $guarded = [];
+
+            public function getShardKeyName(): string
+            {
+                return 'email';
+            }
+        };
+
+        // Laravel 13 rejects an empty uniqueBy with InvalidArgumentException. The
+        // sharded builder inherits that rejection through parent::upsert on every
+        // routed leaf call, so the guarantee is: no shard ever receives rows when
+        // uniqueBy is empty. This guards that no partial write regresses in.
+        foreach ([[], ''] as $uniqueBy) {
+            try {
+                $model::query()->upsert([
+                    ['email' => 'a@example.com', 'name' => 'Alice'],
+                    ['email' => 'b@example.com', 'name' => 'Bob'],
+                ], $uniqueBy, ['name']);
+                $this->fail('Expected InvalidArgumentException for an empty uniqueBy.');
+            } catch (\InvalidArgumentException $exception) {
+                $this->assertSame('The unique columns must not be empty.', $exception->getMessage());
+            }
+
+            $this->assertSame(0, DB::connection('shard1')->table('users')->count());
+            $this->assertSame(0, DB::connection('shard2')->table('users')->count());
+        }
+    }
+
     public function test_upsert_updates_existing_row_in_place(): void
     {
         $shard1 = $this->prepareShardDatabase('upsert-update');
