@@ -11,6 +11,7 @@ use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
 use Laravel\RedisShard\Models\ShardMetadata;
+use Laravel\RedisShard\Rebalance\DatabaseRebalanceDataMover;
 
 class RebalanceShardCommand extends Command
 {
@@ -276,6 +277,9 @@ class RebalanceShardCommand extends Command
 
         $exitCode = $errorCount > 0 ? 1 : 0;
         $remaining = max(0, count($moves) - count($plannedMoves));
+        $fencedMoves = $dataMover instanceof DatabaseRebalanceDataMover
+            ? $dataMover->fencedMoves()
+            : 0;
 
         return $this->respond($exitCode, [
             'summary' => [
@@ -289,6 +293,7 @@ class RebalanceShardCommand extends Command
                 'planned_moves_all' => count($moves),
                 'successful_moves' => $successCount,
                 'failed_moves' => $errorCount,
+                'fenced_moves' => $fencedMoves,
                 'limited' => $limited,
                 'remaining_moves' => $remaining,
             ],

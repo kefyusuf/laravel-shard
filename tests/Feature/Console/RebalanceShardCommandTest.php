@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Tests\Feature\Console;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Facades\Schema;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Facades\ShardManager;
 use Laravel\RedisShard\Models\ShardMetadata;
+use Laravel\RedisShard\Rebalance\DatabaseRebalanceDataMover;
 use Laravel\RedisShard\Tests\TestCase;
 
 class RebalanceShardCommandTest extends TestCase
@@ -122,6 +125,88 @@ class RebalanceShardCommandTest extends TestCase
         $expectedShard = ShardManager::strategy()->determine('users', '1', ShardManager::getAvailableShards());
         $this->assertSame(1, $mover->moves);
         $this->assertSame($expectedShard, $locator->locate('users', '1'));
+    }
+
+    public function test_json_payload_reports_fenced_moves(): void
+    {
+        $this->withoutMockingConsoleOutput();
+        $this->prepareDeterministicRebalanceEnvironment();
+
+        foreach (['shard1', 'shard2'] as $connectionName) {
+            config()->set("database.connections.{$connectionName}", [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+            ]);
+            DB::purge($connectionName);
+            Schema::connection($connectionName)->dropIfExists('users');
+            Schema::connection($connectionName)->create('users', function ($table): void {
+                $table->increments('id');
+                $table->string('name');
+            });
+        }
+
+        DB::connection('shard1')->table('users')->insert(['id' => 1, 'name' => 'Alice']);
+
+        $locator = new class () implements ShardLocatorInterface {
+            /** @var array<string, array<string, string>> */
+            public array $keys = [
+                'users' => [
+                    '1' => 'shard1',
+                ],
+            ];
+
+            public function locate(string $table, mixed $key): ?string
+            {
+                return $this->keys[$table][(string) $key] ?? null;
+            }
+
+            public function register(string $table, mixed $key, string $shardConnection): bool
+            {
+                $this->keys[$table][(string) $key] = $shardConnection;
+
+                return true;
+            }
+
+            public function forget(string $table, mixed $key): bool
+            {
+                unset($this->keys[$table][(string) $key]);
+
+                return true;
+            }
+
+            public function getKeysForShard(string $table, string $shardConnection): array
+            {
+                $keys = [];
+                foreach (($this->keys[$table] ?? []) as $key => $shard) {
+                    if ($shard === $shardConnection) {
+                        $keys[] = $key;
+                    }
+                }
+
+                return $keys;
+            }
+        };
+
+        $this->app->instance(ShardLocatorInterface::class, $locator);
+        $this->app->instance('shard.locator', $locator);
+        $this->app->instance(RebalanceDataMoverInterface::class, new DatabaseRebalanceDataMover());
+        Facade::clearResolvedInstance('shard.manager');
+
+        $exitCode = Artisan::call('shard:rebalance', [
+            'table' => 'users',
+            '--force' => true,
+            '--format' => 'json',
+        ]);
+
+        $payload = json_decode(Artisan::output(), true);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertIsArray($payload);
+        $this->assertSame('completed', $payload['summary']['status'] ?? null);
+        $this->assertSame(0, $payload['summary']['fenced_moves'] ?? null);
+        $this->assertSame(0, DB::connection('shard1')->table('users')->where('id', 1)->count());
+        $this->assertSame('Alice', DB::connection('shard2')->table('users')->where('id', 1)->value('name'));
     }
 
     public function test_metadata_only_mode_does_not_call_data_mover(): void

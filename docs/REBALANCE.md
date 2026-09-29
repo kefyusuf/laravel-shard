@@ -55,6 +55,17 @@ Implications:
 
 There is no cross-shard transaction. Prefer queued/idempotent jobs when moving large volumes.
 
+### Write fencing
+
+Between the copy and the delete, the mover re-reads the source row. If it
+changed during the copy window (a concurrent write), the delete is **skipped**,
+the latest row is propagated to the target, and the fence trip is counted. The
+`shard:rebalance --format=json` summary reports it as `fenced_moves`; a later
+quiet run performs the delete. A concurrent write can therefore never be lost
+by a rebalance.
+
+Disable with `REDIS_SHARD_REBALANCE_FENCE=false` (not recommended).
+
 ## Custom movers
 
 Bind your own implementation when you need chunking, throttling, or hooks:

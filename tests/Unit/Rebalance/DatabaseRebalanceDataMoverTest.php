@@ -34,6 +34,69 @@ class DatabaseRebalanceDataMoverTest extends TestCase
         $this->assertTrue($moved);
         $this->assertSame(0, DB::connection('source_shard')->table('users')->where('id', 1)->count());
         $this->assertSame(1, DB::connection('target_shard')->table('users')->where('id', 1)->count());
+        $this->assertSame(0, $mover->fencedMoves());
+    }
+
+    public function test_concurrent_write_during_copy_fences_the_delete_and_propagates_the_latest_row(): void
+    {
+        config()->set('redis_sharding.rebalance.delete_source_after_copy', true);
+        config()->set('redis_sharding.rebalance.table_key_columns', ['users' => 'id']);
+
+        DB::connection('source_shard')->table('users')->insert([
+            'id' => 1,
+            'name' => 'Alice',
+        ]);
+
+        // Simulates a concurrent writer that commits while the copy runs:
+        // the copy lands, then the source row changes before the delete.
+        $mover = new class () extends DatabaseRebalanceDataMover {
+            public function copyRow(string $connection, string $table, string $keyColumn, mixed $keyValue, array $payload): void
+            {
+                parent::copyRow($connection, $table, $keyColumn, $keyValue, $payload);
+
+                if ($connection === 'target_shard') {
+                    DB::connection('source_shard')->table($table)->where($keyColumn, $keyValue)->update(['name' => 'Concurrent']);
+                }
+            }
+        };
+
+        $moved = $mover->move('users', 1, 'source_shard', 'target_shard');
+
+        $this->assertTrue($moved);
+        $this->assertSame(1, $mover->fencedMoves());
+        $this->assertSame(1, DB::connection('source_shard')->table('users')->where('id', 1)->count());
+        $this->assertSame('Concurrent', DB::connection('source_shard')->table('users')->where('id', 1)->value('name'));
+        $this->assertSame('Concurrent', DB::connection('target_shard')->table('users')->where('id', 1)->value('name'));
+    }
+
+    public function test_fencing_can_be_disabled(): void
+    {
+        config()->set('redis_sharding.rebalance.delete_source_after_copy', true);
+        config()->set('redis_sharding.rebalance.fence_enabled', false);
+        config()->set('redis_sharding.rebalance.table_key_columns', ['users' => 'id']);
+
+        DB::connection('source_shard')->table('users')->insert([
+            'id' => 1,
+            'name' => 'Alice',
+        ]);
+
+        $mover = new class () extends DatabaseRebalanceDataMover {
+            public function copyRow(string $connection, string $table, string $keyColumn, mixed $keyValue, array $payload): void
+            {
+                parent::copyRow($connection, $table, $keyColumn, $keyValue, $payload);
+
+                if ($connection === 'target_shard') {
+                    DB::connection('source_shard')->table($table)->where($keyColumn, $keyValue)->update(['name' => 'Concurrent']);
+                }
+            }
+        };
+
+        $moved = $mover->move('users', 1, 'source_shard', 'target_shard');
+
+        $this->assertTrue($moved);
+        $this->assertSame(0, $mover->fencedMoves());
+        $this->assertSame(0, DB::connection('source_shard')->table('users')->where('id', 1)->count());
+        $this->assertSame('Alice', DB::connection('target_shard')->table('users')->where('id', 1)->value('name'));
     }
 
     public function test_it_returns_false_when_source_row_does_not_exist(): void

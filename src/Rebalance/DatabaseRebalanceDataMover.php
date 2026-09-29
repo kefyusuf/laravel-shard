@@ -13,6 +13,11 @@ use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
  * The operation is idempotent: re-running after a successful move is a no-op
  * success. Interruptions that leave a row on both shards are recoverable by
  * re-running the same command.
+ *
+ * Write fencing: between the copy and the delete, the source row is re-read.
+ * If it changed in the meantime, the delete is skipped and the latest row is
+ * propagated to the target instead — a concurrent write can never be lost.
+ * Trips are counted by fencedMoves().
  */
 class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
 {
@@ -23,10 +28,15 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
 
     protected bool $deleteSourceAfterCopy;
 
+    protected bool $fenceEnabled;
+
+    protected int $fencedMoves = 0;
+
     public function __construct()
     {
         $this->tableKeyColumns = (array) config('redis_sharding.rebalance.table_key_columns', []);
         $this->deleteSourceAfterCopy = (bool) config('redis_sharding.rebalance.delete_source_after_copy', true);
+        $this->fenceEnabled = (bool) config('redis_sharding.rebalance.fence_enabled', true);
     }
 
     public function move(string $table, mixed $key, string $fromShard, string $toShard): bool
@@ -51,12 +61,27 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
         $payload = (array) $sourceRow;
         $keyValue = $payload[$keyColumn] ?? $key;
 
-        DB::connection($toShard)->table($table)->updateOrInsert(
-            [$keyColumn => $keyValue],
-            $payload
-        );
+        $this->copyRow($toShard, $table, $keyColumn, $keyValue, $payload);
 
         if ($this->deleteSourceAfterCopy) {
+            $currentRow = DB::connection($fromShard)
+                ->table($table)
+                ->where($keyColumn, $key)
+                ->first();
+
+            if ($this->fenceEnabled
+                && $currentRow !== null
+                && $this->fingerprint($currentRow) !== $this->fingerprint($sourceRow)
+            ) {
+                // The source row was written while the copy ran: keep it on
+                // the source, propagate the latest version to the target, and
+                // let a later quiet run perform the delete.
+                $this->copyRow($toShard, $table, $keyColumn, $keyValue, (array) $currentRow);
+                $this->fencedMoves++;
+
+                return true;
+            }
+
             DB::connection($fromShard)
                 ->table($table)
                 ->where($keyColumn, $key)
@@ -64,6 +89,31 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
         }
 
         return true;
+    }
+
+    /**
+     * Number of rows whose delete was fenced because the source row changed
+     * during the copy window.
+     */
+    public function fencedMoves(): int
+    {
+        return $this->fencedMoves;
+    }
+
+    protected function copyRow(string $connection, string $table, string $keyColumn, mixed $keyValue, array $payload): void
+    {
+        DB::connection($connection)->table($table)->updateOrInsert(
+            [$keyColumn => $keyValue],
+            $payload
+        );
+    }
+
+    /**
+     * @return string|false
+     */
+    protected function fingerprint(object $row): string|false
+    {
+        return json_encode($row);
     }
 
     protected function resolveKeyColumn(string $table): string
