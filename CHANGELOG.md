@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Console presenter seam**: commands build their report data once and render table-or-JSON from the same shape via the new `Console\Concerns\PresentsReports` trait. `shard:status` is converted, removing its four private payload builders and the duplicate metadata query between table and JSON output; remaining commands migrate to the same pattern.
 - **ShardableBuilder deepened** (internal, no behavior change): routing-plan inference extracted into a pure `Database\ShardRoutingPlan` module (unit-testable without a database) and pinned-connection mechanics into `Database\ShardExecutor`; the builder's overrides now delegate to them.
 
 ### Removed (BC break)
