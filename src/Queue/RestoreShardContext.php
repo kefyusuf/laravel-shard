@@ -45,9 +45,7 @@ class RestoreShardContext
             ));
         }
 
-        if (app()->bound('request')) {
-            app('request')->attributes->set('shard_connection', $context->connection);
-        }
+        app(\Laravel\RedisShard\Support\RequestShardContext::class)->set($context->connection);
 
         if ($context->key !== null) {
             app('shard.locator')->register($context->table, $context->key, $context->connection);

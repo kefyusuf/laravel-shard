@@ -47,7 +47,7 @@ class ShardRouteMiddleware
             }
 
             if (is_string($shardConnection) && $shardConnection !== '') {
-                $request->attributes->set('shard_connection', $shardConnection);
+                app(\Laravel\RedisShard\Support\RequestShardContext::class)->set($shardConnection);
             }
         }
 
