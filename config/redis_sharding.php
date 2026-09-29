@@ -127,6 +127,9 @@ return [
     'rebalance' => [
         'enable_default_data_mover' => env('REDIS_SHARD_REBALANCE_ENABLE_MOVER', false),
         'delete_source_after_copy' => env('REDIS_SHARD_REBALANCE_DELETE_SOURCE', true),
+        // Write fencing: skip the source delete (and propagate the latest row
+        // to the target) when the row changed during the copy window.
+        'fence_enabled' => env('REDIS_SHARD_REBALANCE_FENCE', true),
         'table_key_columns' => [
             // 'users' => 'id',
         ],
