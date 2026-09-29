@@ -16,6 +16,8 @@ class ShardableBuilder extends Builder
 {
     protected bool $bypassShardRouting = false;
 
+    protected ?\Laravel\RedisShard\Database\ShardExecutor $executor = null;
+
     /**
      * Execute a query operation on a specific shard while preserving current builder constraints.
      *
@@ -25,22 +27,19 @@ class ShardableBuilder extends Builder
      */
     protected function runOnShard(string $shardConnection, callable $operation): mixed
     {
-        $query = $this->getQuery();
-        $originalQueryConnection = $query->connection;
-        $originalModelConnection = $this->model->getConnectionName();
         $originalBypassState = $this->bypassShardRouting;
-
-        $this->model->setConnection($shardConnection);
-        $query->connection = app('db')->connection($shardConnection);
         $this->bypassShardRouting = true;
 
         try {
-            return $operation();
+            return $this->executor()->run($shardConnection, $this->model, $this->getQuery(), $operation);
         } finally {
-            $this->model->setConnection($originalModelConnection);
-            $query->connection = $originalQueryConnection;
             $this->bypassShardRouting = $originalBypassState;
         }
+    }
+
+    protected function executor(): \Laravel\RedisShard\Database\ShardExecutor
+    {
+        return $this->executor ??= app(\Laravel\RedisShard\Database\ShardExecutor::class);
     }
 
     /**
@@ -52,12 +51,12 @@ class ShardableBuilder extends Builder
      */
     protected function runOnShardRead(string $shardConnection, callable $operation): mixed
     {
-        return $this->runOnShard($this->readConnectionFor($shardConnection), $operation);
+        return $this->runOnShard($this->executor()->connectionForRead($shardConnection), $operation);
     }
 
     protected function readConnectionFor(string $shardConnection): string
     {
-        return app(\Laravel\RedisShard\Database\ReadReplicaResolver::class)->resolve($shardConnection);
+        return $this->executor()->connectionForRead($shardConnection);
     }
 
     protected function cloneForShardRead(string $shardConnection): self
@@ -99,112 +98,28 @@ class ShardableBuilder extends Builder
             : $this->model->getKeyName();
     }
 
-    protected function normalizeColumn(mixed $column): ?string
-    {
-        if (! is_string($column) || $column === '') {
-            return null;
-        }
-
-        return str_contains($column, '.') ? (string) substr(strrchr($column, '.'), 1) : $column;
-    }
-
     /**
      * @return array{mode:string,connection?:string,groups?:array<string, array<int, mixed>>,reason?:string}
      */
     protected function resolveRoutingPlan(): array
     {
-        $explicitConnection = $this->model->getConnectionName();
-        $defaultConnection = config('database.default');
-
-        if (is_string($explicitConnection) && $explicitConnection !== '' && $explicitConnection !== $defaultConnection) {
-            return [
-                'mode' => 'single',
-                'connection' => $explicitConnection,
-            ];
-        }
-
-        $wheres = $this->getQuery()->wheres;
-        $shardKeyName = $this->getShardKeyName();
-        $table = $this->model->getTable();
-
-        foreach ($wheres as $where) {
-            $column = $this->normalizeColumn($where['column'] ?? null);
-
-            if ($column !== $shardKeyName) {
-                continue;
-            }
-
-            if (($where['boolean'] ?? 'and') !== 'and') {
-                return [
-                    'mode' => 'unsupported',
-                    'reason' => 'Shard key constraints combined with OR predicates are not routable safely.',
-                ];
-            }
-
-            $type = $where['type'] ?? null;
-
-            if ($type === 'Basic' && ($where['operator'] ?? null) === '=') {
-                $connection = $this->resolveShardConnectionForKey($table, $where['value'] ?? null);
-
-                return $connection !== null
-                    ? ['mode' => 'single', 'connection' => $connection]
-                    : ['mode' => 'unsupported', 'reason' => 'Unable to resolve shard for the shard key constraint.'];
-            }
-
-            if (in_array($type, ['In', 'InRaw', 'IntegerInRaw'], true)) {
-                $values = array_values(array_unique(array_map(static fn (mixed $value): string => (string) $value, $where['values'] ?? [])));
-
-                if ($values === []) {
-                    return ['mode' => 'none'];
-                }
-
-                $groups = [];
-
-                foreach ($values as $value) {
-                    $connection = $this->resolveShardConnectionForKey($table, $value);
-
-                    if ($connection === null) {
-                        return [
-                            'mode' => 'unsupported',
-                            'reason' => 'Unable to resolve every shard key in the whereIn constraint.',
-                        ];
-                    }
-
-                    $groups[$connection][] = $value;
-                }
-
-                if (count($groups) === 1) {
-                    return ['mode' => 'single', 'connection' => array_key_first($groups)];
-                }
-
-                return ['mode' => 'many', 'groups' => $groups];
-            }
-
-            return [
-                'mode' => 'unsupported',
-                'reason' => sprintf('Shard key predicate type "%s" is not supported for implicit routing.', (string) $type),
-            ];
-        }
-
-        return ['mode' => 'none'];
+        return \Laravel\RedisShard\Database\ShardRoutingPlan::from(
+            $this->getShardKeyName(),
+            $this->model->getTable(),
+            $this->getQuery()->wheres,
+            $this->model->getConnectionName(),
+            (string) config('database.default'),
+            fn (string $table, mixed $key) => $this->resolveShardConnectionForKey($table, $key),
+        );
     }
 
     protected function requireRoutingPlan(string $operation): array
     {
-        $plan = $this->resolveRoutingPlan();
-
-        if (in_array($plan['mode'], ['single', 'many'], true)) {
-            return $plan;
-        }
-
-        $reason = $plan['reason'] ?? 'Provide an explicit shard-bound connection or shard key predicate.';
-
-        throw new ShardingException(sprintf(
-            'Cannot safely %s on sharded table "%s" without deterministic shard routing. %s',
+        return \Laravel\RedisShard\Database\ShardRoutingPlan::require(
+            $this->resolveRoutingPlan(),
             $operation,
-            $this->model->getTable(),
-            $reason
-        ));
+            $this->model->getTable()
+        );
     }
 
     protected function buildGroupedShardQuery(string $shardConnection, array $values): self
