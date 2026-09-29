@@ -23,6 +23,7 @@ A modular shard locator for Laravel applications that provides deterministic sha
 - **Laravel Integration**: Native Laravel service provider with Artisan commands
 - **Octane Compatible**: Locator state is flushed between Octane worker requests automatically
 - **Laravel Pulse Ready**: Shard routing distribution recorded and visualized on the Pulse dashboard when Pulse is installed
+- **Tenancy Bridge**: Use `stancl/tenancy` or `spatie/laravel-multitenancy` with the tenant id as shard key (`REDIS_SHARD_TENANCY_DRIVER`)
 
 ## 📋 Requirements
 
