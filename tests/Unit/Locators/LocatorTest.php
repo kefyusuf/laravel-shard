@@ -5,21 +5,10 @@ declare(strict_types=1);
 namespace Laravel\RedisShard\Tests\Unit\Locators;
 
 use Laravel\RedisShard\Locators\ArrayShardLocator;
-use Laravel\RedisShard\Locators\NullShardLocator;
 use Laravel\RedisShard\Tests\TestCase;
 
 class LocatorTest extends TestCase
 {
-    public function test_null_locator_never_stores(): void
-    {
-        $locator = new NullShardLocator();
-
-        $this->assertTrue($locator->register('users', 1, 'shard1'));
-        $this->assertNull($locator->locate('users', 1));
-        $this->assertSame([], $locator->getKeysForShard('users', 'shard1'));
-        $this->assertTrue($locator->forget('users', 1));
-    }
-
     public function test_array_locator_roundtrip(): void
     {
         $locator = new ArrayShardLocator();

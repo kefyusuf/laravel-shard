@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed (BC break)
+
+- `Laravel\RedisShard\Database\ConnectionPool` (deprecated in 4.2.0, never wired) and `Laravel\RedisShard\Modules\RedisModule` (deprecated in 4.2.0, never instantiated) are deleted; both had zero callers.
+- `Laravel\RedisShard\Modules\QueueModule::register()` (deprecated in 4.2.0, never invoked) is removed; the module is boot-only.
+- `Laravel\RedisShard\Locators\NullShardLocator` is deleted; it was referenced by nothing in src or docs.
+
 ### Added
 
 - **Virtual bucket sharding**: new `virtual_bucket` strategy — a key hashes into a fixed bucket (`crc32 % N`, default 1024) and a persistent bucket→shard map (in the shard registry) decides placement. Adding/removing shards never moves buckets implicitly; `shard:bucket` assigns a bucket, `shard:bucket-status` shows the distribution, and `shard:rebalance` moves only the keys of moved buckets. Legacy registry files keep working.
