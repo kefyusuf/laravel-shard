@@ -9,10 +9,11 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Redis\Connections\Connection;
 use Illuminate\Redis\RedisManager;
-use Laravel\RedisShard\Exceptions\ShardingException;
 use Laravel\RedisShard\Contracts\ShardLocatorInterface;
+use Laravel\RedisShard\Contracts\ShardStateResettable;
+use Laravel\RedisShard\Exceptions\ShardingException;
 
-class ShardLocator implements ShardLocatorInterface
+class ShardLocator implements ShardLocatorInterface, ShardStateResettable
 {
     /**
      * @var array<string, string>
@@ -129,6 +130,16 @@ class ShardLocator implements ShardLocatorInterface
 
     protected function resetCircuit(): void
     {
+        $this->circuitOpenUntil = null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function resetState(): void
+    {
+        $this->localCache = [];
+        $this->localShardKeys = [];
         $this->circuitOpenUntil = null;
     }
 
@@ -320,6 +331,7 @@ class ShardLocator implements ShardLocatorInterface
 
             if ($fallback !== null) {
                 $this->rememberLocalMapping($table, $key, $fallback);
+
                 return $fallback;
             }
 
@@ -340,6 +352,7 @@ class ShardLocator implements ShardLocatorInterface
 
             if ($fallback !== null) {
                 $this->rememberLocalMapping($table, $key, $fallback);
+
                 return $fallback;
             }
 
@@ -351,6 +364,7 @@ class ShardLocator implements ShardLocatorInterface
         if (is_string($shardConnection) && $shardConnection !== '') {
             $this->rememberLocalMapping($table, $key, $shardConnection);
             $this->rememberFallbackMapping($table, $key, $shardConnection);
+
             return $shardConnection;
         }
 

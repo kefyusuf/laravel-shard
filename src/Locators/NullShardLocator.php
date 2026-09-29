@@ -30,4 +30,9 @@ class NullShardLocator implements ShardLocatorInterface
     {
         return [];
     }
+
+    public function resetState(): void
+    {
+        // Stateless by design; nothing to flush.
+    }
 }

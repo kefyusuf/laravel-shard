@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Octane compatibility**: locators now expose `resetState()` via the new `ShardStateResettable` contract. When Laravel Octane is installed, the package listens to `RequestTerminated` and flushes process-local locator state (cached mappings, circuit-breaker status) between requests, preventing stale routing under long-running workers. No listener is registered (and no overhead is paid) when Octane is absent. Custom locators can opt in by implementing the contract.
+
 ### Changed
 
 - Configuration validation now runs in **every** environment, including `testing`. Previously the provider skipped `ConfigValidator` entirely under the `testing` environment, so invalid `redis_sharding` config shipped silently to consumer CI runs. The `strict_validation` flag (default `true`) now decides the outcome in all environments: invalid config throws `ConfigurationException` when strict, logs a warning when lenient. Set `redis_sharding.strict_validation = false` to keep the previous lenient behavior in test suites.
