@@ -57,6 +57,21 @@ return [
         'enabled' => env('REDIS_SHARD_PULSE', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-tenancy bridge
+    |--------------------------------------------------------------------------
+    |
+    | When a supported tenancy package is installed, the tenant id is used as
+    | the shard key and the resolved shard connection is pinned to the request
+    | (same channel as the `shard` middleware). Drivers: stancl, spatie.
+    |
+    */
+    'tenancy' => [
+        'driver' => env('REDIS_SHARD_TENANCY_DRIVER'),
+        'table' => env('REDIS_SHARD_TENANCY_TABLE', 'tenants'),
+    ],
+
     // Redis connection to use for sharding metadata (redis module only)
     'redis_connection' => env('REDIS_SHARD_CONNECTION', 'default'),
 

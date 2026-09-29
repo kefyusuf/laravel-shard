@@ -153,6 +153,7 @@ class RedisShardServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'redis-shard');
 
         $this->registerPulseIntegration();
+        $this->registerTenancyBridge();
 
         $this->app->make('router')->aliasMiddleware('shard', ShardRouteMiddleware::class);
 
@@ -188,6 +189,24 @@ class RedisShardServiceProvider extends ServiceProvider
                 \Laravel\RedisShard\Metrics\Pulse\ShardUsageRecorder::class => ['enabled' => true],
             ]);
         });
+    }
+
+    protected function registerTenancyBridge(): void
+    {
+        $driver = (string) config('redis_sharding.tenancy.driver', '');
+
+        if ($driver === 'stancl' && class_exists(\Stancl\Tenancy\Tenancy::class)) {
+            // Event names as strings: the tenancy packages are optional deps.
+            $this->app['events']->listen(
+                'Stancl\Tenancy\Events\TenancyInitialized',
+                \Laravel\RedisShard\Tenancy\StanclTenancyListener::class
+            );
+        } elseif ($driver === 'spatie' && class_exists(\Spatie\Multitenancy\Multitenancy::class)) {
+            $this->app['events']->listen(
+                'Spatie\Multitenancy\Events\TenantFound',
+                \Laravel\RedisShard\Tenancy\SpatieTenantListener::class
+            );
+        }
     }
 
     protected function registerOctaneStateFlush(): void
