@@ -9,6 +9,10 @@ use Laravel\RedisShard\Support\ModuleRegistry;
 
 /**
  * Optional Redis-backed shard locator, map cache and Redis console helpers.
+ *
+ * @deprecated since 4.2.0. The service provider binds the Redis locator
+ *             directly in registerCore(); this class is never instantiated.
+ *             It will be removed in 5.0.
  */
 class RedisModule
 {

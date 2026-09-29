@@ -32,6 +32,11 @@ class QueueModule
         return $this->modules->queue();
     }
 
+    /**
+     * @deprecated since 4.2.0. Never invoked: the service provider binds
+     *             RestoreShardContext itself in registerOptionalModules().
+     *             Boot-only in 5.0.
+     */
     public function register(): void
     {
         if (!$this->isAvailable()) {
