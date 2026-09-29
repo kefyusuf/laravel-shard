@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Configuration validation now runs in **every** environment, including `testing`. Previously the provider skipped `ConfigValidator` entirely under the `testing` environment, so invalid `redis_sharding` config shipped silently to consumer CI runs. The `strict_validation` flag (default `true`) now decides the outcome in all environments: invalid config throws `ConfigurationException` when strict, logs a warning when lenient. Set `redis_sharding.strict_validation = false` to keep the previous lenient behavior in test suites.
 
+### Deprecated
+
+- `Laravel\RedisShard\Database\ConnectionPool` — never wired into the container; Laravel's pooled PDO connections already cover this. Removed in 5.0.
+- `Laravel\RedisShard\Modules\RedisModule` — never instantiated; the service provider binds the Redis locator directly. Removed in 5.0.
+- `Laravel\RedisShard\Modules\QueueModule::register()` — never invoked; the provider binds `RestoreShardContext` itself. Boot-only in 5.0.
+- The `redis_sharding.auto_provisioning` config keys (`enabled`, `max_shards`, `threshold`) are marked **reserved and inert**: no auto-provisioner is wired yet. They are kept for forward compatibility and still validated by `ConfigValidator`.
+
 ## [4.1.0] - 2026-09-28
 
 ### 4.1.0 Added

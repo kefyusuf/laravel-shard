@@ -74,7 +74,8 @@ return [
         // ],
     ],
 
-    // Auto-provisioning settings
+    // Auto-provisioning settings — RESERVED, currently inert: no provisioner
+    // is wired yet (see CHANGELOG 4.2.0). Keys are kept for forward compatibility.
     'auto_provisioning' => [
         'enabled' => env('REDIS_SHARD_AUTO_PROVISION', false),
         'max_shards' => env('REDIS_SHARD_MAX_SHARDS', 10),

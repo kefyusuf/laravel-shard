@@ -8,6 +8,11 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @deprecated since 4.2.0. This class is not wired into the container and
+ *             duplicates connection handling Laravel already provides via its
+ *             pooled PDO connections. It will be removed in 5.0.
+ */
 class ConnectionPool
 {
     /**
