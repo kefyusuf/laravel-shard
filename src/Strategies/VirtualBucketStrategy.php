@@ -31,9 +31,10 @@ class VirtualBucketStrategy implements ShardStrategyInterface
 
     protected int $bucketCount;
 
-    public function __construct(?int $bucketCount = null)
+    public function __construct(?int $bucketCount = null, ?\Laravel\RedisShard\Support\RedisShardConfig $shardConfig = null)
     {
-        $this->bucketCount = max(1, $bucketCount ?? (int) config('redis_sharding.virtual_buckets.count', 1024));
+        $shardConfig ??= app(\Laravel\RedisShard\Support\RedisShardConfig::class);
+        $this->bucketCount = $bucketCount ?? $shardConfig->bucketCount();
     }
 
     public function determine(string $table, mixed $key, array $availableShards): string
