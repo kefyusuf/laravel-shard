@@ -35,11 +35,16 @@ class ShardBucketCommand extends Command
             return 1;
         }
 
-        $map = ShardRegistry::readBucketMap();
-        $previous = $map[$bucket] ?? null;
+        $previous = null;
 
-        $map[$bucket] = $shard;
-        ShardRegistry::writeBucketMap($map);
+        // The read-modify-write runs under the registry's exclusive lock, so
+        // concurrent shard:bucket runs cannot clobber each other's assignments.
+        ShardRegistry::mutateBucketMap(function (array $map) use ($bucket, $shard, &$previous): array {
+            $previous = $map[$bucket] ?? null;
+            $map[$bucket] = $shard;
+
+            return $map;
+        });
 
         $from = $previous !== null ? " (was {$previous})" : '';
         $this->info("Bucket {$bucket} assigned to {$shard}{$from}. Run php artisan shard:rebalance to move its data.");

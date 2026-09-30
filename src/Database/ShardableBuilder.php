@@ -6,6 +6,7 @@ namespace Laravel\RedisShard\Database;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\LazyCollection;
@@ -51,7 +52,27 @@ class ShardableBuilder extends Builder
      */
     protected function runOnShardRead(string $shardConnection, callable $operation): mixed
     {
-        return $this->runOnShard($this->executor()->connectionForRead($shardConnection), $operation);
+        $result = $this->runOnShard($this->readConnectionFor($shardConnection), $operation);
+
+        return $this->stampShardConnection($result, $shardConnection);
+    }
+
+    /**
+     * Re-point hydrated models at the shard connection: reads may come from
+     * a replica, but a later save() must write to the shard, never to the
+     * replica.
+     */
+    protected function stampShardConnection(mixed $result, string $shardConnection): mixed
+    {
+        if ($result instanceof Model) {
+            $result->setConnection($shardConnection);
+        } elseif ($result instanceof Collection || $result instanceof LazyCollection) {
+            $result->each(function (Model $model) use ($shardConnection): void {
+                $model->setConnection($shardConnection);
+            });
+        }
+
+        return $result;
     }
 
     protected function readConnectionFor(string $shardConnection): string
@@ -137,6 +158,7 @@ class ShardableBuilder extends Builder
         foreach ($groups as $connection => $values) {
             $builder = $this->buildGroupedShardReadQuery($connection, $values);
             $shardResults = $operation($builder);
+            $this->stampShardConnection($shardResults, $connection);
 
             if ($shardResults instanceof Collection) {
                 $results = $results->merge($shardResults);
@@ -283,6 +305,7 @@ class ShardableBuilder extends Builder
                 /** @var \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model> $shardResults */
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
+                $this->stampShardConnection($shardResults, $shardConnection);
                 $results = $results->merge($shardResults);
 
                 continue;
@@ -293,6 +316,7 @@ class ShardableBuilder extends Builder
                 /** @var \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model> $shardResults */
                 $shardResults = $query->whereIn($this->model->getQualifiedKeyName(), $shardIds)
                     ->get($columns);
+                $this->stampShardConnection($shardResults, $availableShard);
                 $results = $results->merge($shardResults);
             }
         }
@@ -424,6 +448,7 @@ class ShardableBuilder extends Builder
             $items = $totalRecords > 0
                 ? $this->cloneForShardRead($plan['connection'])->forPage($page, $perPage)->get($columns)
                 : $this->model->newCollection();
+            $this->stampShardConnection($items, $plan['connection']);
 
             return new LengthAwarePaginator(
                 $items,
@@ -461,11 +486,19 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('chunk records');
 
         if ($plan['mode'] === 'single') {
-            return $this->runOnShardRead($plan['connection'], fn () => parent::chunk($count, $callback));
+            return $this->runOnShardRead($plan['connection'], fn () => parent::chunk($count, function (...$chunkArgs) use ($callback, $plan) {
+                $this->stampShardConnection($chunkArgs[0] ?? null, $plan['connection']);
+
+                return $callback(...$chunkArgs);
+            }));
         }
 
         foreach ($plan['groups'] as $connection => $values) {
-            $continue = $this->buildGroupedShardReadQuery($connection, $values)->chunk($count, $callback);
+            $continue = $this->buildGroupedShardReadQuery($connection, $values)->chunk($count, function (...$chunkArgs) use ($callback, $connection) {
+                $this->stampShardConnection($chunkArgs[0] ?? null, $connection);
+
+                return $callback(...$chunkArgs);
+            });
 
             if ($continue === false) {
                 return false;
@@ -484,12 +517,18 @@ class ShardableBuilder extends Builder
         $plan = $this->requireRoutingPlan('stream records');
 
         if ($plan['mode'] === 'single') {
-            return $this->cloneForShardRead($plan['connection'])->cursor();
+            return $this->cloneForShardRead($plan['connection'])->cursor()->map(function (Model $model) use ($plan) {
+                $model->setConnection($plan['connection']);
+
+                return $model;
+            });
         }
 
         return LazyCollection::make(function () use ($plan) {
             foreach ($plan['groups'] as $connection => $groupValues) {
                 foreach ($this->buildGroupedShardReadQuery($connection, $groupValues)->cursor() as $record) {
+                    $record->setConnection($connection);
+
                     yield $record;
                 }
             }

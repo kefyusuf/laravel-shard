@@ -30,6 +30,23 @@ class ReadReplicaRoutingTest extends TestCase
         $this->assertSame(1, $model::query()->where('id', 1)->get()->count());
     }
 
+    public function test_models_hydrated_from_replica_reads_carry_the_shard_connection(): void
+    {
+        $this->prepareEnvironment(['shard1' => 'shard1_replica']);
+
+        $model = $this->model();
+
+        // Hydrated models must not carry the replica connection: a later
+        // save() has to write to the shard, never to the replica.
+        $found = $model::query()->find(1);
+        $this->assertNotNull($found);
+        $this->assertSame('shard1', $found->getConnectionName());
+
+        foreach ($model::query()->where('id', 1)->get() as $listed) {
+            $this->assertSame('shard1', $listed->getConnectionName());
+        }
+    }
+
     public function test_writes_still_target_the_shard_connection(): void
     {
         $this->prepareEnvironment(['shard1' => 'shard1_replica']);

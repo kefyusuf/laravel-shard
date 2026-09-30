@@ -39,6 +39,41 @@ class ShardRegistry
     }
 
     /**
+     * Apply a transformation to the bucket map atomically: the registry lock
+     * is held across the read-modify-write, so concurrent mutations (e.g.
+     * two shard:bucket runs) cannot clobber each other.
+     *
+     * @param callable(array<int, string>): array<int, string> $update
+     */
+    public static function mutateBucketMap(callable $update): void
+    {
+        $path = static::resolvePath();
+        $directory = dirname($path);
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0700, true);
+        } else {
+            @chmod($directory, 0700);
+        }
+
+        static::withFileLock($path, LOCK_EX, function () use ($path, $update): void {
+            $contents = is_file($path) ? (string) file_get_contents($path) : '';
+            $document = static::decodeDocument($contents);
+
+            $buckets = [];
+            foreach ($document['buckets'] as $bucket => $shard) {
+                if (is_string($shard) && $shard !== '') {
+                    $buckets[(int) $bucket] = $shard;
+                }
+            }
+
+            $updated = $update($buckets);
+
+            static::writeDocumentUnlocked($path, $document['connections'], $updated);
+        });
+    }
+
+    /**
      * @return array<int, string> bucket number => shard connection
      */
     public static function readBucketMap(): array
@@ -70,6 +105,21 @@ class ShardRegistry
             @chmod($directory, 0700);
         }
 
+        static::withFileLock($path, LOCK_EX, function () use ($path, $connections, $buckets): void {
+            static::writeDocumentUnlocked($path, $connections, $buckets);
+        });
+    }
+
+    /**
+     * Write the registry document without acquiring the lock. Callers must
+     * already hold the registry lock (public write paths wrap this; mutateBucketMap
+     * holds the lock across read-modify-write).
+     *
+     * @param array<string, array<string, mixed>> $connections
+     * @param array<int, string> $buckets
+     */
+    protected static function writeDocumentUnlocked(string $path, array $connections, array $buckets): void
+    {
         $payload = json_encode([
             'version' => static::FILE_VERSION,
             'connections' => $connections,
@@ -79,25 +129,23 @@ class ShardRegistry
             throw new \RuntimeException('Failed to encode shard registry payload.');
         }
 
-        static::withFileLock($path, LOCK_EX, function () use ($path, $payload): void {
-            $tempPath = $path . '.tmp.' . uniqid('', true);
+        $tempPath = $path . '.tmp.' . uniqid('', true);
 
-            $bytes = file_put_contents($tempPath, $payload);
-            if ($bytes === false) {
-                throw new \RuntimeException('Failed to write temporary shard registry file.');
-            }
+        $bytes = file_put_contents($tempPath, $payload);
+        if ($bytes === false) {
+            throw new \RuntimeException('Failed to write temporary shard registry file.');
+        }
 
-            @chmod($tempPath, 0640);
+        @chmod($tempPath, 0640);
 
+        if (! @rename($tempPath, $path)) {
+            @unlink($path);
             if (! @rename($tempPath, $path)) {
-                @unlink($path);
-                if (! @rename($tempPath, $path)) {
-                    @unlink($tempPath);
+                @unlink($tempPath);
 
-                    throw new \RuntimeException('Failed to atomically write shard registry file.');
-                }
+                throw new \RuntimeException('Failed to atomically write shard registry file.');
             }
-        });
+        }
     }
 
     /**
@@ -117,6 +165,18 @@ class ShardRegistry
             return is_string($contents) ? $contents : '';
         });
 
+        return static::decodeDocument($contents);
+    }
+
+    /**
+     * Decode a registry document without acquiring the lock. Callers must
+     * already hold the registry lock.
+     *
+     * @param string $contents
+     * @return array{connections: array<string, array<string, mixed>>, buckets: array<string, mixed>}
+     */
+    protected static function decodeDocument(string $contents): array
+    {
         if ($contents === '') {
             return ['connections' => [], 'buckets' => []];
         }
