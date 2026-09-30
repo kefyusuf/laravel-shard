@@ -210,7 +210,7 @@ class ShardStatusCommand extends Command
         $metadata = ShardMetadata::where('name', $shardName)->first();
 
         // Get table distribution for this shard
-        $tables = config('redis_sharding.monitored_tables', ['users', 'orders', 'products']);
+        $tables = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->monitoredTables();
         $tableData = [];
 
         foreach ($tables as $table) {

@@ -88,8 +88,8 @@ class VirtualBucketStrategy implements ShardStrategyInterface
      */
     protected function bucketMap(): array
     {
-        $path = config('redis_sharding.registry_path');
-        $mtime = is_string($path) && is_file($path) ? (int) filemtime($path) : 0;
+        $path = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->registryPath();
+        $mtime = is_file($path) ? (int) filemtime($path) : 0;
 
         if (self::$bucketMapCache === null || self::$bucketMapCacheMtime !== $mtime) {
             self::$bucketMapCache = ShardRegistry::readBucketMap();

@@ -48,7 +48,7 @@ class ShardMonitor
      */
     protected function getRedisConnection()
     {
-        $redisConnection = config('redis_sharding.redis_connection', 'default');
+        $redisConnection = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->redisConnection();
         $manager = $this->redis ?? app('redis');
 
         return $manager->connection($redisConnection);
@@ -385,7 +385,7 @@ class ShardMonitor
     protected function getMonitoredTables(): array
     {
         // This could be configurable
-        return config('redis_sharding.monitored_tables', ['users', 'orders', 'products']);
+        return app(\Laravel\RedisShard\Support\RedisShardConfig::class)->monitoredTables();
     }
 
     /**

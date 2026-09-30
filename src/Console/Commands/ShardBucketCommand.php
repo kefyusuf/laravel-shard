@@ -27,7 +27,7 @@ class ShardBucketCommand extends Command
             return 1;
         }
 
-        $shards = array_keys((array) config('redis_sharding.connections', []));
+        $shards = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->shardNames();
 
         if (! in_array($shard, $shards, true)) {
             $this->error("Unknown shard connection \"{$shard}\". Available: " . implode(', ', $shards) . '.');

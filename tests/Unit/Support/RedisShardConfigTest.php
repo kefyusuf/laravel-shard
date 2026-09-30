@@ -48,6 +48,65 @@ class RedisShardConfigTest extends TestCase
         $this->assertSame('tenants', $this->config()->tenancyTable());
     }
 
+    public function test_redis_connection_defaults_to_default(): void
+    {
+        $this->assertSame('default', $this->config()->redisConnection());
+    }
+
+    public function test_monitored_tables_default(): void
+    {
+        config()->set('redis_sharding', []);
+
+        $this->assertSame(['users', 'orders', 'products'], $this->config()->monitoredTables());
+    }
+
+    public function test_monitored_tables_with_null_value_yields_empty(): void
+    {
+        config()->set('redis_sharding', ['monitored_tables' => null]);
+
+        $this->assertSame([], $this->config()->monitoredTables());
+    }
+
+    public function test_shard_names_reads_connection_keys(): void
+    {
+        config()->set('redis_sharding.connections', [
+            'shard1' => ['driver' => 'sqlite'],
+            'shard2' => ['driver' => 'sqlite'],
+        ]);
+
+        $this->assertSame(['shard1', 'shard2'], $this->config()->shardNames());
+    }
+
+    public function test_shard_connections_returns_the_full_map(): void
+    {
+        config()->set('redis_sharding.connections', ['shard1' => ['driver' => 'sqlite']]);
+
+        $this->assertSame(['shard1' => ['driver' => 'sqlite']], $this->config()->shardConnections());
+    }
+
+    public function test_default_connection_reads_database_config(): void
+    {
+        config()->set('database.default', 'testing');
+
+        $this->assertSame('testing', $this->config()->defaultConnection());
+    }
+
+    public function test_rebalance_settings_with_defaults(): void
+    {
+        config()->set('redis_sharding.rebalance', []);
+
+        $this->assertSame([], $this->config()->rebalanceTableKeyColumns());
+        $this->assertTrue($this->config()->rebalanceDeleteSourceAfterCopy());
+        $this->assertTrue($this->config()->rebalanceFenceEnabled());
+    }
+
+    public function test_registry_path_falls_back_to_storage(): void
+    {
+        config()->set('redis_sharding.registry_path', null);
+
+        $this->assertNotSame('', $this->config()->registryPath());
+    }
+
     private function config(): RedisShardConfig
     {
         return new RedisShardConfig(app(Repository::class));

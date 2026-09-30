@@ -111,7 +111,7 @@ trait Shardable
      */
     protected function prepareShardConnectionForWrite(): void
     {
-        $defaultConnection = config('database.default');
+        $defaultConnection = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->defaultConnection();
         $explicitConnection = $this->getConnectionName();
         $hasExplicitNonDefaultConnection = is_string($explicitConnection)
             && $explicitConnection !== ''

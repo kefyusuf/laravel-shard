@@ -196,7 +196,7 @@ class ShardHealthCommand extends Command
         $issues = [];
 
         try {
-            $redisConnection = config('redis_sharding.redis_connection', 'default');
+            $redisConnection = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->redisConnection();
             $redis = app(RedisFactory::class)->connection($redisConnection);
             $redis->command('ping');
             if (! $this->jsonOutput) {
@@ -227,7 +227,7 @@ class ShardHealthCommand extends Command
     {
         $issues = [];
         $shards = ShardManager::getAvailableShards();
-        $tables = config('redis_sharding.monitored_tables', ['users', 'orders', 'products']);
+        $tables = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->monitoredTables();
 
         foreach ($tables as $table) {
             $distribution = [];
@@ -278,7 +278,7 @@ class ShardHealthCommand extends Command
         $shardLookup = array_fill_keys(ShardManager::getAvailableShards(), true);
 
         try {
-            $redisConnection = config('redis_sharding.redis_connection', 'default');
+            $redisConnection = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->redisConnection();
             $redis = app(RedisFactory::class)->connection($redisConnection);
             $orphanedCount = 0;
             foreach ($this->scanKeys($redis, 'shard:*') as $key) {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Static config reads migrated to `Support\RedisShardConfig`**: the recurring runtime keys (redis connection, monitored tables, shard names/connections, default connection, rebalance settings, registry path, metadata table) now have named accessors and ~20 call sites across commands, monitor, traits, queue, mover, strategy, registry and the metadata model read through them. The remaining static reads (provider bootstrap, the pure validator, the redis key scanner's framework prefix, the module registry factory) are legitimately static.
+
 ## [5.0.0] - 2026-10-01
 
 ### Changed

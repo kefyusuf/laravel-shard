@@ -129,7 +129,7 @@ class ShardableBuilder extends Builder
             $this->model->getTable(),
             $this->getQuery()->wheres,
             $this->model->getConnectionName(),
-            (string) config('database.default'),
+            (string) app(\Laravel\RedisShard\Support\RedisShardConfig::class)->defaultConnection(),
             fn (string $table, mixed $key) => $this->resolveShardConnectionForKey($table, $key),
         );
     }
@@ -653,7 +653,7 @@ class ShardableBuilder extends Builder
         }
 
         $explicitConnection = $this->model->getConnectionName();
-        $defaultConnection = config('database.default');
+        $defaultConnection = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->defaultConnection();
 
         if (is_string($explicitConnection) && $explicitConnection !== '' && $explicitConnection !== $defaultConnection) {
             return $this->runOnShard($explicitConnection, fn () => parent::upsert($values, $uniqueBy, $update));
