@@ -35,7 +35,7 @@ class TenancyShardBridge
 
         $connection = ShardManager::getShardConnection($this->table, $tenantId);
 
-        app('request')?->attributes?->set('shard_connection', $connection);
+        app(\Laravel\RedisShard\Support\RequestShardContext::class)->set($connection);
 
         return $connection;
     }

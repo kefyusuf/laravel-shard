@@ -59,13 +59,9 @@ class ShardContextDispatcher
 
     protected static function currentContext(): ?ShardContext
     {
-        if (! app()->bound('request')) {
-            return null;
-        }
+        $connection = app(\Laravel\RedisShard\Support\RequestShardContext::class)->get();
 
-        $connection = app('request')->attributes->get('shard_connection');
-
-        if (! is_string($connection) || $connection === '') {
+        if ($connection === null) {
             return null;
         }
 

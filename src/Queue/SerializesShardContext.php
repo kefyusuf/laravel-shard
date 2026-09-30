@@ -47,9 +47,7 @@ trait SerializesShardContext
             ));
         }
 
-        if (app()->bound('request')) {
-            app('request')->attributes->set('shard_connection', $connection);
-        }
+        app(\Laravel\RedisShard\Support\RequestShardContext::class)->set($connection);
 
         return $callback();
     }

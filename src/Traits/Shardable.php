@@ -204,13 +204,7 @@ trait Shardable
 
     protected function getRequestShardConnection(): ?string
     {
-        if (! app()->bound('request')) {
-            return null;
-        }
-
-        $connection = app('request')->attributes->get('shard_connection');
-
-        return is_string($connection) && $connection !== '' ? $connection : null;
+        return app(\Laravel\RedisShard\Support\RequestShardContext::class)->get();
     }
 
     /**
