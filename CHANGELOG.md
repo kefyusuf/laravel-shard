@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Console presenter seam**: commands build their report data once and render table-or-JSON from the same shape via the new `Console\Concerns\PresentsReports` trait. `shard:status` is converted, removing its four private payload builders and the duplicate metadata query between table and JSON output; remaining commands migrate to the same pattern.
 - **ShardableBuilder deepened** (internal, no behavior change): routing-plan inference extracted into a pure `Database\ShardRoutingPlan` module (unit-testable without a database) and pinned-connection mechanics into `Database\ShardExecutor`; the builder's overrides now delegate to them.
 
+### Deprecated
+
+- `Laravel\RedisShard\ShardLocator` (the root-namespace Redis locator) is now an alias subclass of `Laravel\RedisShard\Locators\RedisShardLocator`, which holds the real implementation. Removed in 5.0.
+
 ### Removed (BC break)
 
 - `Laravel\RedisShard\Database\ConnectionPool` (deprecated in 4.2.0, never wired) and `Laravel\RedisShard\Modules\RedisModule` (deprecated in 4.2.0, never instantiated) are deleted; both had zero callers.
