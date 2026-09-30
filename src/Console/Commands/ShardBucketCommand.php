@@ -17,7 +17,7 @@ class ShardBucketCommand extends Command
 
     public function handle(): int
     {
-        $bucketCount = max(1, (int) config('redis_sharding.virtual_buckets.count', 1024));
+        $bucketCount = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->bucketCount();
         $bucket = (int) $this->argument('bucket');
         $shard = (string) $this->argument('shard');
 

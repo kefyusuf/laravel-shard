@@ -18,7 +18,7 @@ class TenancyShardBridge
 
     public function __construct(?string $table = null)
     {
-        $this->table = $table ?? (string) config('redis_sharding.tenancy.table', 'tenants');
+        $this->table = $table ?? app(\Laravel\RedisShard\Support\RedisShardConfig::class)->tenancyTable();
     }
 
     /**

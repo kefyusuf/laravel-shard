@@ -57,6 +57,7 @@ class RedisShardServiceProvider extends ServiceProvider
     {
         $this->app->singleton(RequestShardUsage::class);
         $this->app->singleton(\Laravel\RedisShard\Support\RequestShardContext::class);
+        $this->app->singleton(\Laravel\RedisShard\Support\RedisShardConfig::class);
         $this->app->singleton(\Laravel\RedisShard\Database\ReadReplicaResolver::class);
 
         $this->app->singleton(ShardLocatorInterface::class, function ($app) {
@@ -200,7 +201,7 @@ class RedisShardServiceProvider extends ServiceProvider
 
     protected function registerTenancyBridge(): void
     {
-        $driver = (string) config('redis_sharding.tenancy.driver', '');
+        $driver = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->tenancyDriver();
 
         if ($driver === 'stancl' && class_exists(\Stancl\Tenancy\Tenancy::class)) {
             // Event names as strings: the tenancy packages are optional deps.
