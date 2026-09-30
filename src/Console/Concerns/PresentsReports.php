@@ -25,7 +25,7 @@ trait PresentsReports
      */
     protected function renderReport(array $report): void
     {
-        if ($this->jsonOutput) {
+        if ($this->isJsonOutput()) {
             $this->emitJson($report['json']);
 
             return;
@@ -42,5 +42,18 @@ trait PresentsReports
         foreach ($report['meta'] ?? [] as $line) {
             $this->info($line);
         }
+    }
+
+    /**
+     * Commands either track JSON mode in a $jsonOutput property (validated
+     * format) or fall back to reading the --format option directly.
+     */
+    protected function isJsonOutput(): bool
+    {
+        if (property_exists($this, 'jsonOutput')) {
+            return (bool) $this->jsonOutput;
+        }
+
+        return $this->option('format') === 'json';
     }
 }
