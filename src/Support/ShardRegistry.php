@@ -214,16 +214,7 @@ class ShardRegistry
 
     protected static function resolvePath(): string
     {
-        $configuredPath = config('redis_sharding.registry_path');
-        if (is_string($configuredPath) && $configuredPath !== '') {
-            return $configuredPath;
-        }
-
-        if (function_exists('storage_path')) {
-            return storage_path('app/redis_sharding_registry.json');
-        }
-
-        return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'redis_sharding_registry.json';
+        return app(RedisShardConfig::class)->registryPath();
     }
 
     /**

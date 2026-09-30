@@ -22,7 +22,7 @@ class ShardBucketStatusCommand extends Command
     {
         $bucketCount = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->bucketCount();
         $map = ShardRegistry::readBucketMap();
-        $shards = array_keys((array) config('redis_sharding.connections', []));
+        $shards = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->shardNames();
 
         $perShard = array_fill_keys($shards, 0);
         $unassigned = 0;

@@ -38,7 +38,7 @@ trait SerializesShardContext
         }
 
         $connection = $this->shardContext->connection;
-        $connections = config('redis_sharding.connections', []);
+        $connections = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->shardConnections();
 
         if (! array_key_exists($connection, $connections)) {
             throw new ShardingException(sprintf(

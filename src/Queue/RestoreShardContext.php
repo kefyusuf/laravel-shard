@@ -36,7 +36,7 @@ class RestoreShardContext
 
     public function apply(ShardContext $context): void
     {
-        $connections = config('redis_sharding.connections', []);
+        $connections = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->shardConnections();
 
         if (! array_key_exists($context->connection, $connections)) {
             throw new ShardingException(sprintf(

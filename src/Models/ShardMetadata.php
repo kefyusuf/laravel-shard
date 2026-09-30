@@ -29,8 +29,8 @@ class ShardMetadata extends Model
 
     public function getTable(): string
     {
-        $configuredTable = config('redis_sharding.metadata_table');
-        if (is_string($configuredTable) && $configuredTable !== '') {
+        $configuredTable = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->metadataTable();
+        if ($configuredTable !== null) {
             return $configuredTable;
         }
 

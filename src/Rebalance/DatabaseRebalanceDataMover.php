@@ -34,9 +34,10 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
 
     public function __construct()
     {
-        $this->tableKeyColumns = (array) config('redis_sharding.rebalance.table_key_columns', []);
-        $this->deleteSourceAfterCopy = (bool) config('redis_sharding.rebalance.delete_source_after_copy', true);
-        $this->fenceEnabled = (bool) config('redis_sharding.rebalance.fence_enabled', true);
+        $shardConfig = app(\Laravel\RedisShard\Support\RedisShardConfig::class);
+        $this->tableKeyColumns = $shardConfig->rebalanceTableKeyColumns();
+        $this->deleteSourceAfterCopy = $shardConfig->rebalanceDeleteSourceAfterCopy();
+        $this->fenceEnabled = $shardConfig->rebalanceFenceEnabled();
     }
 
     public function move(string $table, mixed $key, string $fromShard, string $toShard): bool

@@ -52,7 +52,7 @@ class ShardCleanupCommand extends Command
             ->values()
             ->all();
 
-        $redisConnection = config('redis_sharding.redis_connection', 'default');
+        $redisConnection = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->redisConnection();
         $redis = app(RedisFactory::class)->connection($redisConnection);
         $shards = ShardManager::getAvailableShards();
         $shardLookup = array_fill_keys($shards, true);
@@ -93,7 +93,7 @@ class ShardCleanupCommand extends Command
 
         $tablesToClean = ! empty($targetTables)
             ? $targetTables
-            : (! empty($tablesSeen) ? array_keys($tablesSeen) : (array) config('redis_sharding.monitored_tables', []));
+            : (! empty($tablesSeen) ? array_keys($tablesSeen) : app(\Laravel\RedisShard\Support\RedisShardConfig::class)->monitoredTables());
 
         $tablesToClean = array_values(array_filter(
             array_unique($tablesToClean),
