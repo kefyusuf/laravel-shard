@@ -58,6 +58,8 @@ class RedisShardServiceProvider extends ServiceProvider
         $this->app->singleton(RequestShardUsage::class);
         $this->app->singleton(\Laravel\RedisShard\Support\RequestShardContext::class);
         $this->app->singleton(\Laravel\RedisShard\Support\RedisShardConfig::class);
+        $this->app->singleton(\Laravel\RedisShard\Support\ShardProvisioner::class);
+        $this->app->singleton(\Laravel\RedisShard\Database\CrossShardTransactionCoordinator::class);
         $this->app->singleton(\Laravel\RedisShard\Database\ReadReplicaResolver::class);
 
         $this->app->singleton(ShardLocatorInterface::class, function ($app) {

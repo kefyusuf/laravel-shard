@@ -13,7 +13,6 @@ use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Contracts\ShardStrategyInterface;
 use Laravel\RedisShard\Exceptions\ShardingException;
 use Laravel\RedisShard\Metrics\Pulse\RequestShardUsage;
-use Laravel\RedisShard\Models\ShardMetadata;
 use Laravel\RedisShard\Support\ShardRegistry;
 
 class ShardManager
@@ -171,58 +170,9 @@ class ShardManager
      */
     public function transaction(array $shardConnections, Closure $callback): mixed
     {
-        $connections = array_values(array_unique($shardConnections));
-
-        if ($connections === []) {
-            throw new ShardingException('Cross-shard transactions require at least one shard connection.');
-        }
-
-        $begun = [];
-
-        try {
-            foreach ($connections as $connection) {
-                $this->db->connection($connection)->beginTransaction();
-                $begun[] = $connection;
-            }
-        } catch (\Throwable $e) {
-            foreach (array_reverse($begun) as $connection) {
-                $this->db->connection($connection)->rollBack();
-            }
-
-            throw new ShardingException(sprintf(
-                'Cross-shard transaction could not begin on "%s": %s',
-                end($connections),
-                $e->getMessage()
-            ), 0, $e);
-        }
-
-        try {
-            $result = $callback();
-        } catch (\Throwable $e) {
-            foreach (array_reverse($begun) as $connection) {
-                $this->db->connection($connection)->rollBack();
-            }
-
-            throw $e;
-        }
-
-        foreach ($begun as $index => $connection) {
-            try {
-                $this->db->connection($connection)->commit();
-            } catch (\Throwable $e) {
-                foreach (array_slice($begun, $index + 1) as $remaining) {
-                    $this->db->connection($remaining)->rollBack();
-                }
-
-                throw new ShardingException(sprintf(
-                    'Cross-shard transaction commit failed on "%s"; earlier shards are already committed: %s',
-                    $connection,
-                    $e->getMessage()
-                ), 0, $e);
-            }
-        }
-
-        return $result;
+        return $this->container !== null
+            ? $this->container->make(\Laravel\RedisShard\Database\CrossShardTransactionCoordinator::class)->transaction($shardConnections, $callback)
+            : app(\Laravel\RedisShard\Database\CrossShardTransactionCoordinator::class)->transaction($shardConnections, $callback);
     }
 
     /**
@@ -234,55 +184,14 @@ class ShardManager
      */
     public function createShard(string $name, array $config): bool
     {
-        $connections = $this->config->get('redis_sharding.connections', []);
-        $databaseConnections = $this->config->get('database.connections', []);
-        $originalConnections = $connections;
-        $originalDatabaseConnections = $databaseConnections;
-        $persistedRegistry = ShardRegistry::readAll();
+        return $this->provisioner()->createShard($name, $config);
+    }
 
-        if (isset($connections[$name]) || isset($databaseConnections[$name])) {
-            return false;
-        }
-
-        // Add the connection to the config
-        $connections[$name] = $config;
-        $this->config->set('redis_sharding.connections', $connections);
-        $this->config->set("database.connections.{$name}", $config);
-        ShardRegistry::upsert($name, $config);
-
-        // Reset cached connection state so the new shard can be used immediately.
-        try {
-            $this->db->purge($name);
-        } catch (\Throwable $e) {
-            // Ignore purge failures for brand-new connections.
-        }
-
-        try {
-            ShardMetadata::query()->create([
-                'name' => $name,
-                'connection' => $name,
-                'created_at' => now(),
-                'status' => 'active',
-            ]);
-        } catch (\Throwable $e) {
-            $this->config->set('redis_sharding.connections', $originalConnections);
-            $this->config->set('database.connections', $originalDatabaseConnections);
-            ShardRegistry::writeAll($persistedRegistry);
-
-            try {
-                $this->db->purge($name);
-            } catch (\Throwable) {
-                // Ignore cleanup failures while unwinding shard creation.
-            }
-
-            throw new ShardingException(
-                "Failed to create shard '{$name}': {$e->getMessage()}",
-                0,
-                $e
-            );
-        }
-
-        return true;
+    protected function provisioner(): \Laravel\RedisShard\Support\ShardProvisioner
+    {
+        return $this->container !== null
+            ? $this->container->make(\Laravel\RedisShard\Support\ShardProvisioner::class)
+            : new \Laravel\RedisShard\Support\ShardProvisioner($this->config, $this->db);
     }
 
     /**
