@@ -15,6 +15,7 @@ use Laravel\RedisShard\Facades\ShardManager;
 class ShardCleanupCommand extends Command
 {
     use HandlesJsonOutput;
+    use \Laravel\RedisShard\Console\Concerns\PresentsReports;
     use ScansRedisKeys;
     use ValidatesOutputFormat;
 
@@ -118,15 +119,14 @@ class ShardCleanupCommand extends Command
             }
         }
 
-        if ($format === 'json') {
-            $this->emitJson(
-                $this->buildReportPayload($dryRun, $scannedKeys, $orphanedKeys, $staleMapEntries)
-            );
-        } else {
-            $this->line("Scanned shard keys: {$scannedKeys}");
-            $this->line("Orphaned keys " . ($dryRun ? 'found' : 'cleaned') . ": {$orphanedKeys}");
-            $this->line("Stale shard-map entries " . ($dryRun ? 'found' : 'cleaned') . ": {$staleMapEntries}");
-        }
+        $this->renderReport([
+            'json' => $this->buildReportPayload($dryRun, $scannedKeys, $orphanedKeys, $staleMapEntries),
+            'meta' => [
+                "Scanned shard keys: {$scannedKeys}",
+                "Orphaned keys " . ($dryRun ? 'found' : 'cleaned') . ": {$orphanedKeys}",
+                "Stale shard-map entries " . ($dryRun ? 'found' : 'cleaned') . ": {$staleMapEntries}",
+            ],
+        ]);
 
         return 0;
     }

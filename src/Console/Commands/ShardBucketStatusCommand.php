@@ -11,6 +11,7 @@ use Laravel\RedisShard\Support\ShardRegistry;
 class ShardBucketStatusCommand extends Command
 {
     use HandlesJsonOutput;
+    use \Laravel\RedisShard\Console\Concerns\PresentsReports;
 
     protected $signature = 'shard:bucket-status
                             {--format=table : Output format (table, json)}';
@@ -36,8 +37,8 @@ class ShardBucketStatusCommand extends Command
 
         $unassigned += $bucketCount - count($map);
 
-        if ($this->option('format') === 'json') {
-            $this->emitJson([
+        $this->renderReport([
+            'json' => [
                 'summary' => [
                     'status' => 'ok',
                     'bucket_count' => $bucketCount,
@@ -45,14 +46,12 @@ class ShardBucketStatusCommand extends Command
                     'unassigned' => $unassigned,
                 ],
                 'shards' => $perShard,
-            ]);
-
-            return 0;
-        }
-
-        $this->info("Virtual buckets: {$bucketCount} (assigned: " . count($map) . ", unassigned: {$unassigned})");
-        $this->table(['Shard', 'Buckets'], $perShard);
-        $this->line('Move a bucket with: php artisan shard:bucket {bucket} {shard}');
+            ],
+            'header' => ["Virtual buckets: {$bucketCount} (assigned: " . count($map) . ", unassigned: {$unassigned})"],
+            'headers' => ['Shard', 'Buckets'],
+            'rows' => array_map(static fn (string $shard, int $buckets): array => [$shard, $buckets], array_keys($perShard), $perShard),
+            'meta' => ['Move a bucket with: php artisan shard:bucket {bucket} {shard}'],
+        ]);
 
         return 0;
     }
