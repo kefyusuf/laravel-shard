@@ -17,8 +17,6 @@ A modular shard locator for Laravel applications that provides deterministic sha
 - **Request Routing**: Route middleware and shard-aware builders for single-shard operations
 - **Model Integration**: Easy integration using the `Shardable` trait
 - **Performance Monitoring**: Built-in monitoring and health checks
-- **Auto-Provisioning**: Automatic shard creation when thresholds are reached
-- **Connection Pooling**: Optimized database connection management
 - **Cross-Shard Operations**: Support for cross-shard queries and aggregations
 - **Laravel Integration**: Native Laravel service provider with Artisan commands
 - **Octane Compatible**: Locator state is flushed between Octane worker requests automatically
@@ -26,6 +24,7 @@ A modular shard locator for Laravel applications that provides deterministic sha
 - **Tenancy Bridge**: Use `stancl/tenancy` or `spatie/laravel-multitenancy` with the tenant id as shard key (`REDIS_SHARD_TENANCY_DRIVER`)
 - **Read Replicas**: Map per-shard replica connections — reads go to the replica, writes stay on the shard
 - **Cross-Shard Transactions**: `ShardManager::transaction()` coordinates begin/commit/rollback across shards (best-effort, documented)
+- **Write-Fenced Rebalancing**: idempotent rebalance with write fencing — a concurrent write can never be lost; virtual buckets make resharding move ~1/N of the keys
 
 ## 📋 Requirements
 
@@ -56,7 +55,8 @@ With `redis` disabled the package falls back to `ArrayShardLocator` (process-loc
 
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get started in 5 minutes
 - **[API Reference](docs/API.md)** - Complete API documentation
-- **[Rebalance Operations](docs/REBALANCE.md)** - Dry-run, gradual moves, idempotent rebalance
+- **[Rebalance Operations](docs/REBALANCE.md)** - Dry-run, gradual moves, idempotent rebalance, write fencing, virtual buckets
+- **[Cross-Shard Transactions](docs/TRANSACTIONS.md)** - `ShardManager::transaction()` semantics and reconciliation patterns
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate existing applications
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization and benchmarks
 - **[Release Runbook](docs/RELEASE_RUNBOOK.md)** - Package + consumer release checklist
@@ -343,7 +343,7 @@ php vendor/kefyusuf/laravel-shard/examples/smoke.php /path/to/your-app
 
 ## 🔧 Sharding Strategies
 
-The package supports three different sharding strategies:
+The package supports four different sharding strategies:
 
 ### 1. Modulo Strategy
 
@@ -356,7 +356,7 @@ Simple modulo-based distribution. Use only when the shard list is effectively st
 **Pros**: Simple, predictable distribution
 **Cons**: Adding/removing shards remaps most keys and requires explicit data migration
 
-### 2. Consistent Hashing Strategy (Recommended)
+### 2. Consistent Hashing Strategy
 
 Uses consistent hashing algorithm for better distribution when shards are added/removed.
 
@@ -365,7 +365,7 @@ Uses consistent hashing algorithm for better distribution when shards are added/
 ```
 
 **Pros**: Minimal data movement when scaling, good distribution
-**Cons**: Slightly more complex
+**Cons**: A rehash still displaces ~half the keys; resharding is all-or-nothing per run
 
 ### 3. Range-Based Strategy
 
@@ -378,6 +378,24 @@ Distributes data based on key ranges.
 **Pros**: Good for time-series or sequential data
 **Cons**: Can create hotspots if data isn't evenly distributed
 
+### 4. Virtual Bucket Strategy (Recommended for resharding)
+
+A key hashes into a **fixed bucket** (`crc32 % N`, default 1024) and a persistent bucket→shard map decides placement. Buckets never move implicitly — you move them explicitly and rebalance carries only that bucket's keys (~1/N of the data per move).
+
+```php
+'default_strategy' => 'virtual_bucket',
+
+'virtual_buckets' => ['count' => env('REDIS_SHARD_VBUCKETS', 1024)],
+```
+
+```bash
+php artisan shard:bucket-status            # distribution overview
+php artisan shard:bucket 512 shard2        # move bucket 512 to shard2
+php artisan shard:rebalance users          # carry only that bucket's keys
+```
+
+See [docs/REBALANCE.md](docs/REBALANCE.md) for the full workflow.
+
 ## 🎛️ Artisan Commands
 
 ### Shard Management
@@ -389,8 +407,20 @@ php artisan shard:create shard3 --driver=mysql --host=127.0.0.1 --port=3306 --da
 # Install package (run migrations and setup)
 php artisan redis-shard:install
 
-# Rebalance data across shards
-php artisan shard:rebalance users --strategy=consistent_hashing
+# Rebalance data across shards (dry-run first, then --limit=N for gradual moves)
+php artisan shard:rebalance users --dry-run
+php artisan shard:rebalance users --limit=100
+php artisan shard:rebalance users
+```
+
+### Virtual Bucket Management
+
+```bash
+# Bucket distribution overview (table or --format=json)
+php artisan shard:bucket-status
+
+# Assign a virtual bucket to a shard (then rebalance to move its data)
+php artisan shard:bucket 512 shard2
 ```
 
 ### Monitoring & Analysis
@@ -541,24 +571,6 @@ $cache->putShardMetadata('shard1', $metadata);
 $stats = $cache->getStats();
 ```
 
-### Connection Pooling
-
-```php
-use Laravel\RedisShard\Database\ConnectionPool;
-
-$pool = app(ConnectionPool::class);
-
-// Get optimized connection from pool
-$connection = $pool->getConnection('shard1');
-
-// Get pool statistics
-$stats = $pool->getStats();
-// Returns: total_connections, active_connections, pool_utilization, etc.
-
-// Test all connections
-$results = $pool->testConnections();
-```
-
 ## 🔄 Advanced Usage
 
 ### Cross-Shard Query Builder
@@ -693,17 +705,11 @@ The package includes extensive testing coverage:
 ### Test Suites
 
 ```bash
-# Run all tests (51 tests total)
+# Run all tests (260+ tests across Unit, Feature and Integration suites)
 vendor/bin/phpunit
 
-# Run unit tests (21 tests)
+# Run a specific suite
 vendor/bin/phpunit --testsuite=Unit
-
-# Run integration tests (22 tests)
-vendor/bin/phpunit --testsuite=Integration
-
-# Run feature tests (8 tests)
-vendor/bin/phpunit --testsuite=Feature
 
 # Run with coverage
 vendor/bin/phpunit --coverage-html coverage
@@ -994,10 +1000,6 @@ php artisan shard:rebalance users --strategy=consistent_hashing
 ```bash
 # Check shard performance
 php artisan shard:health
-
-# Enable caching
-# In config/redis_sharding.php
-'cache_ttl' => 3600, // Enable caching
 ```
 
 ### Debug Mode
@@ -1023,15 +1025,6 @@ DB::listen(function ($query) {
 ### Performance Tuning
 
 ```php
-// Optimize cache settings
-'cache_ttl' => 7200, // Increase cache TTL
-
-// Connection pool settings
-'connection_pool' => [
-    'max_connections' => 20,
-    'connection_timeout' => 300,
-],
-
 // Monitor and adjust based on metrics
 $metrics = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class)->collectMetrics();
 ```
@@ -1045,22 +1038,7 @@ $metrics = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class)->collectMetri
 
 ## 🆕 Changelog
 
-### v2.0.0 (Latest)
-
-- ✅ Added comprehensive testing infrastructure (51 tests)
-- ✅ Enhanced monitoring and observability features
-- ✅ Improved developer experience with new Artisan commands
-- ✅ Added configuration validation and error handling
-- ✅ Performance optimizations with caching and connection pooling
-- ✅ Cross-shard query builder with aggregation support
-- ✅ Real-world examples and best practices documentation
-
-### v1.0.0
-
-- ✅ Basic sharding functionality
-- ✅ Multiple sharding strategies
-- ✅ Redis-based shard location
-- ✅ Laravel integration with service provider
+See [CHANGELOG.md](CHANGELOG.md) for the full release history (latest: **v5.0.0** — virtual bucket sharding, cross-shard transactions, deep-module refactor, read replicas, write fencing, Pulse/Octane/tenancy integrations).
 
 ## 📝 License
 
@@ -1076,4 +1054,4 @@ This package is open-sourced software licensed under the [MIT license](LICENSE).
 
 Made for the Laravel community.
 
-For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/your-username/laravel-shard).
+For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/kefyusuf/laravel-shard).
