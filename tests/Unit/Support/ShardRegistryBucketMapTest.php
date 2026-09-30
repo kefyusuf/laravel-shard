@@ -86,4 +86,20 @@ class ShardRegistryBucketMapTest extends TestCase
         $this->assertSame(['shard1', 'shard2'], array_keys(ShardRegistry::readAll()));
         $this->assertSame([5 => 'shard1'], ShardRegistry::readBucketMap());
     }
+
+    public function test_bucket_map_mutation_applies_atomically_under_the_registry_lock(): void
+    {
+        ShardRegistry::writeAll(['shard1' => ['driver' => 'sqlite'], 'shard2' => ['driver' => 'sqlite']]);
+        ShardRegistry::writeBucketMap([1 => 'shard1']);
+
+        ShardRegistry::mutateBucketMap(function (array $map): array {
+            $map[2] = 'shard2';
+            unset($map[1]);
+
+            return $map;
+        });
+
+        $this->assertSame([2 => 'shard2'], ShardRegistry::readBucketMap());
+        $this->assertSame(['shard1', 'shard2'], array_keys(ShardRegistry::readAll()));
+    }
 }

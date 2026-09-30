@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Virtual bucket sharding**: new `virtual_bucket` strategy — a key hashes into a fixed bucket (`crc32 % N`, default 1024) and a persistent bucket→shard map (in the shard registry) decides placement. Adding/removing shards never moves buckets implicitly; `shard:bucket` assigns a bucket, `shard:bucket-status` shows the distribution, and `shard:rebalance` moves only the keys of moved buckets. Legacy registry files keep working.
 - **Cross-shard transactions**: `ShardManager::transaction(array $shards, Closure $callback)` opens a transaction on every shard, rolls all back when the callback throws, and commits in begin order with best-effort semantics (documented; not a distributed 2PC). See `docs/TRANSACTIONS.md`.
 
+### Fixed
+
+- **Replica reads no longer leak the replica connection onto hydrated models**: models returned from replica-backed reads (find, findMany, first, get, paginate, chunk, cursor, grouped reads) are re-pointed at the shard connection, so a later `save()` writes to the shard — never to the replica.
+- **`shard:bucket` assignments are now atomic**: the read-modify-write runs under the registry's exclusive lock via the new `ShardRegistry::mutateBucketMap()`, so concurrent bucket assignments cannot clobber each other.
+- **Rebalance fence/delete keying** uses the row's actual key-column value consistently between the copy, the fence re-read and the source delete.
+
 ## [4.2.0] - 2026-09-29
 
 ### Added

@@ -66,7 +66,7 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
         if ($this->deleteSourceAfterCopy) {
             $currentRow = DB::connection($fromShard)
                 ->table($table)
-                ->where($keyColumn, $key)
+                ->where($keyColumn, $keyValue)
                 ->first();
 
             if ($this->fenceEnabled
@@ -84,7 +84,7 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
 
             DB::connection($fromShard)
                 ->table($table)
-                ->where($keyColumn, $key)
+                ->where($keyColumn, $keyValue)
                 ->delete();
         }
 
