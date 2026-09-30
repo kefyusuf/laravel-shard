@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-10-01
+
 ### Changed
 
 - **ShardManager collaborators**: cross-shard transaction coordination extracted into `Database\CrossShardTransactionCoordinator` and shard provisioning into `Support\ShardProvisioner`; `ShardManager::transaction()` and `ShardManager::createShard()` keep their signatures and delegate. ShardManager is back to a focused routing facade (~230 LoC).
