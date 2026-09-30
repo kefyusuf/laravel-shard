@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **ShardManager collaborators**: cross-shard transaction coordination extracted into `Database\CrossShardTransactionCoordinator` and shard provisioning into `Support\ShardProvisioner`; `ShardManager::transaction()` and `ShardManager::createShard()` keep their signatures and delegate. ShardManager is back to a focused routing facade (~230 LoC).
 - **Request shard context module**: the `shard_connection` request attribute is now owned by `Support\RequestShardContext` (get/set with normalization). The middleware, tenancy bridge, queue serialize/restore and the Shardable trait all go through it instead of touching the raw attribute string.
 - **Console presenter seam**: commands build their report data once and render table-or-JSON from the same shape via the new `Console\Concerns\PresentsReports` trait. `shard:status` is converted, removing its four private payload builders and the duplicate metadata query between table and JSON output; remaining commands migrate to the same pattern.
 - **ShardableBuilder deepened** (internal, no behavior change): routing-plan inference extracted into a pure `Database\ShardRoutingPlan` module (unit-testable without a database) and pinned-connection mechanics into `Database\ShardExecutor`; the builder's overrides now delegate to them.
