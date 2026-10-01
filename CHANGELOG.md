@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- The consumer-repo release dispatch workflow (`.github/workflows/dispatch-consumer-post-release.yml`) and its documentation — the consumer integration repo is no longer available; post-release verification is manual (see `docs/RELEASE_RUNBOOK.md`).
+
 ### Fixed
 
 - **Pulse usage counter now flushes in every execution context**: the `shard_request` counter was only flushed on HTTP `RequestHandled`, so queue workers and CLI runs accumulated unbounded state under Octane. The recorder now also flushes between queue job loops (`Looping`), after console commands (`CommandFinished`), on worker shutdown (`WorkerStopping`) and on Octane `OperationTerminated`.
