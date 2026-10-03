@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
+use Laravel\RedisShard\Contracts\ShardLocatorInterface;
 use Laravel\RedisShard\Exceptions\ShardingException;
+use Laravel\RedisShard\Locators\ArrayShardLocator;
 use Laravel\RedisShard\Queue\RestoreShardContext;
 use Laravel\RedisShard\Queue\ShardAwareJob;
 use Laravel\RedisShard\Queue\ShardContext;
@@ -73,6 +75,7 @@ class ShardAwareQueueTest extends TestCase
 
     public function test_restore_middleware_rejects_unknown_connection(): void
     {
+        $this->app->instance('shard.locator', new ArrayShardLocator());
         config()->set('redis_sharding.connections', []);
 
         $context = new ShardContext('users', 1, 'missing-shard', 'id');
@@ -82,6 +85,28 @@ class ShardAwareQueueTest extends TestCase
         $this->expectExceptionMessage('connection "missing-shard" is not configured');
 
         $middleware->apply($context);
+    }
+
+    public function test_old_job_context_uses_current_mapping_without_moving_it_back(): void
+    {
+        $locator = new ArrayShardLocator();
+        $this->app->instance(ShardLocatorInterface::class, $locator);
+        $this->app->instance('shard.locator', $locator);
+        $locator->register('users', 42, 'shard1');
+        $context = new ShardContext('users', 42, 'shard1', 'id');
+
+        // A move completed after this job was enqueued.
+        $locator->forget('users', 42);
+        $locator->register('users', 42, 'shard2');
+        $job = \Mockery::mock(QueueJob::class);
+        $job->shouldReceive('payload')->once()->andReturn(['shard_context' => $context->toArray()]);
+
+        (new RestoreShardContext())->handle($job, function () use ($locator): void {
+            $this->assertSame('shard2', $locator->locate('users', 42));
+            $this->assertSame('shard2', request()->attributes->get('shard_connection'));
+        });
+
+        $this->assertSame('shard2', $locator->locate('users', 42));
     }
 
     public function test_shard_aware_job_runs_handler_on_restored_shard(): void

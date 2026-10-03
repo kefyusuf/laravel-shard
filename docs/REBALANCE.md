@@ -1,6 +1,6 @@
 # Rebalance Operations
 
-Safe, resumable data movement between shards.
+Resumable row movement between shards, subject to the concurrency and routing limits below.
 
 ## Command
 
@@ -42,14 +42,16 @@ php artisan shard:rebalance {table} \
 
 ## Idempotency
 
-The default `DatabaseRebalanceDataMover` is safe to re-run:
+The default `DatabaseRebalanceDataMover` supports retries for a single row identified by a unique key:
 
 1. Copy the row to the target shard (`updateOrInsert`).
-2. Delete the row from the source shard.
+2. With write fencing enabled, delete the source only when its column values still match the copied snapshot.
+
+Configure a column with an actual database unique constraint in `rebalance.table_key_columns`. If more than one source row matches the key, the mover throws an exception before copying or deleting anything. This runtime check does not establish schema uniqueness or prevent a concurrent duplicate insert; the database constraint must enforce that requirement. The mover does not move a tenant's set of rows identified by a non-unique `tenant_id`.
 
 Implications:
 
-- **Interrupt after copy, before delete** — the row exists on both shards. Re-running the same move succeeds and deletes the source (copy is a no-op).
+- **Interrupt after copy, before delete** — the row exists on both shards. Re-running the move copies the source again, which can overwrite target changes, then attempts the conditional source delete.
 - **Re-run after a completed move** — source is gone, target has the row → success, no work done.
 - **Source already gone and target missing** — treated as a failure so silent data loss is not ignored.
 
@@ -58,11 +60,32 @@ There is no cross-shard transaction. Prefer queued/idempotent jobs when moving l
 ### Write fencing
 
 Between the copy and the delete, the mover re-reads the source row. If it
-changed during the copy window (a concurrent write), the delete is **skipped**,
-the latest row is propagated to the target, and the fence trip is counted. The
-`shard:rebalance --format=json` summary reports it as `fenced_moves`; a later
-quiet run performs the delete. A concurrent write can therefore never be lost
-by a rebalance.
+changed during the copy window, the delete is skipped, the latest observed
+row is propagated to the target, and the fence trip is counted. If the re-read
+matches, deletion uses a single conditional `DELETE` with comparison predicates
+for all copied columns. Strings are compared bytewise so a case-insensitive
+collation cannot hide a change such as `Alice` to `ALICE`: SQLite uses `CAST AS BLOB`,
+MySQL/MariaDB uses `CAST AS BINARY`, and PostgreSQL uses
+`convert_to(CAST AS text, 'UTF8')`. Numeric values use SQL equality and null values
+use `IS NULL`. A change after the re-read prevents deletion when these predicates
+no longer match. When source deletion and fencing are enabled, a string snapshot
+on an unsupported driver causes an exception before copying.
+
+SQLite uses this same conditional `DELETE`; it does not use `SELECT ... FOR UPDATE`
+or claim row-level locking. Database write serialization governs concurrent
+statements. SQLite regression coverage includes a write from another connection
+immediately before deletion, a null column, and a case-only change on a `NOCASE`
+column. It does not establish behavior for every production database or column
+type. Binary/blob columns and other unsupported types may require a custom mover.
+
+The `shard:rebalance --format=json` summary reports fence trips as `fenced_moves`.
+A fence retains the source row, but the command can still update the key's mapping
+to the target. Later writes to either copy and retries that overwrite the target
+remain outside this protection. Quiesce application writes during moves, inspect
+both copies and the mapping after a fence, and reconcile them before deleting
+retained source data. A later run only removes the source when its snapshot is
+unchanged at deletion time. This is not a guarantee of lossless online resharding
+or atomic copy, delete, and metadata updates across shards.
 
 Disable with `REDIS_SHARD_REBALANCE_FENCE=false` (not recommended).
 

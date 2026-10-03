@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Laravel\RedisShard\Rebalance;
 
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
+use Laravel\RedisShard\Exceptions\ShardingException;
 
 /**
  * Copies a row to the target shard, then deletes it from the source.
@@ -14,10 +16,10 @@ use Laravel\RedisShard\Contracts\RebalanceDataMoverInterface;
  * success. Interruptions that leave a row on both shards are recoverable by
  * re-running the same command.
  *
- * Write fencing: between the copy and the delete, the source row is re-read.
- * If it changed in the meantime, the delete is skipped and the latest row is
- * propagated to the target instead — a concurrent write can never be lost.
- * Trips are counted by fencedMoves().
+ * With fencing enabled, a source delete requires the copied snapshot to
+ * match in a single conditional DELETE. Changed rows remain on the source
+ * and the latest observed version is copied to the target. This is not an
+ * online resharding protocol or a distributed transaction.
  */
 class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
 {
@@ -49,10 +51,21 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
             ->where($keyColumn, $key)
             ->first();
 
-        $sourceRow = DB::connection($fromShard)
+        $sourceRows = DB::connection($fromShard)
             ->table($table)
             ->where($keyColumn, $key)
-            ->first();
+            ->limit(2)
+            ->get();
+
+        if ($sourceRows->count() > 1) {
+            throw new ShardingException(sprintf(
+                'Cannot rebalance "%s": key column "%s" matches multiple source rows. A unique key is required.',
+                $table,
+                $keyColumn
+            ));
+        }
+
+        $sourceRow = $sourceRows->first();
 
         // Already on the target and gone from the source: nothing to do.
         if ($sourceRow === null) {
@@ -61,6 +74,12 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
 
         $payload = (array) $sourceRow;
         $keyValue = $payload[$keyColumn] ?? $key;
+
+        $delete = DB::connection($fromShard)->table($table)->where($keyColumn, $keyValue);
+        if ($this->deleteSourceAfterCopy && $this->fenceEnabled) {
+            // Build and validate the snapshot predicates before copying.
+            $this->constrainToSnapshot($delete, $payload);
+        }
 
         $this->copyRow($toShard, $table, $keyColumn, $keyValue, $payload);
 
@@ -76,17 +95,26 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
             ) {
                 // The source row was written while the copy ran: keep it on
                 // the source, propagate the latest version to the target, and
-                // let a later quiet run perform the delete.
+                // require an explicit source reconciliation before cleanup.
                 $this->copyRow($toShard, $table, $keyColumn, $keyValue, (array) $currentRow);
                 $this->fencedMoves++;
 
                 return true;
             }
 
-            DB::connection($fromShard)
-                ->table($table)
-                ->where($keyColumn, $keyValue)
-                ->delete();
+            $deleted = $delete->delete();
+
+            if ($this->fenceEnabled && $deleted === 0) {
+                $latestRow = DB::connection($fromShard)
+                    ->table($table)
+                    ->where($keyColumn, $keyValue)
+                    ->first();
+
+                if ($latestRow !== null) {
+                    $this->copyRow($toShard, $table, $keyColumn, $keyValue, (array) $latestRow);
+                    $this->fencedMoves++;
+                }
+            }
         }
 
         return true;
@@ -107,6 +135,38 @@ class DatabaseRebalanceDataMover implements RebalanceDataMoverInterface
             [$keyColumn => $keyValue],
             $payload
         );
+    }
+
+    /**
+     * Compare the snapshot and delete in one statement, without allowing a
+     * case-insensitive collation to hide changed string values.
+     *
+     * @param array<string, mixed> $payload
+     */
+    protected function constrainToSnapshot(Builder $query, array $payload): void
+    {
+        /** @var \Illuminate\Database\Connection $connection */
+        $connection = $query->getConnection();
+        $driver = $connection->getDriverName();
+        foreach ($payload as $column => $value) {
+            if (! is_string($value)) {
+                $query->where($column, $value);
+
+                continue;
+            }
+
+            $wrapped = $query->getGrammar()->wrap($column);
+            $comparison = match ($driver) {
+                'sqlite' => "CAST({$wrapped} AS BLOB) = CAST(? AS BLOB)",
+                'mysql', 'mariadb' => "CAST({$wrapped} AS BINARY) = CAST(? AS BINARY)",
+                'pgsql' => "convert_to(CAST({$wrapped} AS text), 'UTF8') = convert_to(CAST(? AS text), 'UTF8')",
+                default => throw new ShardingException(sprintf(
+                    'Snapshot string comparison is not supported for driver "%s". Use a custom rebalance data mover.',
+                    $driver
+                )),
+            };
+            $query->whereRaw($comparison, [$value]);
+        }
     }
 
     /**

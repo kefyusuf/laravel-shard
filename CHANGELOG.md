@@ -7,16 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.1] - 2026-10-03
+
 ### Removed
 
 - The consumer-repo release dispatch workflow (`.github/workflows/dispatch-consumer-post-release.yml`) and its documentation — the consumer integration repo is no longer available; post-release verification is manual (see `docs/RELEASE_RUNBOOK.md`).
 
 ### Fixed
 
+- **Rebalance rejects non-unique source keys**: more than one row matching the configured move key now causes an exception before copying or deleting data, preventing a partial copy followed by a multi-row delete. An actual database unique constraint is still required to prevent concurrent duplicate inserts.
+- **Rebalance source deletion closes the re-read/delete window**: with write fencing enabled, a single conditional delete compares the copied source columns. SQLite, MySQL/MariaDB, and PostgreSQL string comparisons are bytewise, preventing case-insensitive collations from hiding a concurrent change; numeric and null values use SQL predicates. Unsupported driver string snapshots are rejected before copying when source deletion and fencing are enabled. A changed source is retained and reported as fenced. SQLite uses this conditional delete without `SELECT ... FOR UPDATE`; cross-shard copy and mapping updates remain non-atomic, and production database and column-type coverage remains limited.
+- **Queued jobs no longer overwrite a moved key's mapping**: keyed context restoration uses the current locator mapping when available instead of writing the captured connection back to the locator. Missing mappings and contexts without a key retain the captured connection for compatibility; this fallback cannot detect migration. Only the selected connection must remain configured.
 - **Pulse usage counter now flushes in every execution context**: the `shard_request` counter was only flushed on HTTP `RequestHandled`, so queue workers and CLI runs accumulated unbounded state under Octane. The recorder now also flushes between queue job loops (`Looping`), after console commands (`CommandFinished`), on worker shutdown (`WorkerStopping`) and on Octane `OperationTerminated`.
 
 ### Changed
 
+- README and rebalance guidance now describe unique-key requirements, conditional deletion, retry risks, and known production limitations instead of promising that concurrent writes can never be lost.
 - **Static config reads migrated to `Support\RedisShardConfig`**: the recurring runtime keys (redis connection, monitored tables, shard names/connections, default connection, rebalance settings, registry path, metadata table) now have named accessors and ~20 call sites across commands, monitor, traits, queue, mover, strategy, registry and the metadata model read through them. The remaining static reads (provider bootstrap, the pure validator, the redis key scanner's framework prefix, the module registry factory) are legitimately static.
 
 ## [5.0.0] - 2026-10-01
@@ -189,7 +195,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite, MySQL, and PostgreSQL support
 - Comprehensive README with examples
 
-[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v4.1.0...HEAD
+[Unreleased]: https://github.com/kefyusuf/laravel-shard/compare/v5.0.1...HEAD
+[5.0.1]: https://github.com/kefyusuf/laravel-shard/compare/v5.0.0...v5.0.1
+[5.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v4.2.0...v5.0.0
+[4.2.0]: https://github.com/kefyusuf/laravel-shard/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/kefyusuf/laravel-shard/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/kefyusuf/laravel-shard/compare/v3.0.0...v4.0.0

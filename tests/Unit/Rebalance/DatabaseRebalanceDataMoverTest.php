@@ -6,6 +6,7 @@ namespace Laravel\RedisShard\Tests\Unit\Rebalance;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Laravel\RedisShard\Exceptions\ShardingException;
 use Laravel\RedisShard\Rebalance\DatabaseRebalanceDataMover;
 use Laravel\RedisShard\Tests\TestCase;
 
@@ -107,6 +108,90 @@ class DatabaseRebalanceDataMoverTest extends TestCase
         $moved = $mover->move('users', 999, 'source_shard', 'target_shard');
 
         $this->assertFalse($moved);
+    }
+
+    public function test_non_unique_source_key_is_rejected_before_either_shard_changes(): void
+    {
+        config()->set('redis_sharding.rebalance.table_key_columns', ['users' => 'name']);
+        DB::connection('source_shard')->table('users')->insert([
+            ['id' => 1, 'name' => 'Shared'],
+            ['id' => 2, 'name' => 'Shared'],
+        ]);
+
+        try {
+            (new DatabaseRebalanceDataMover())->move('users', 'Shared', 'source_shard', 'target_shard');
+        } catch (ShardingException $exception) {
+            $this->assertSame([1, 2], DB::connection('source_shard')->table('users')->orderBy('id')->pluck('id')->all());
+            $this->assertSame(0, DB::connection('target_shard')->table('users')->count());
+
+            return;
+        }
+
+        $this->fail('A non-unique source key must be rejected before copying or deleting rows.');
+    }
+
+    public function test_write_after_reread_is_not_deleted(): void
+    {
+        config()->set('redis_sharding.rebalance.table_key_columns', ['users' => 'id']);
+        config()->set('redis_sharding.rebalance.delete_source_after_copy', true);
+        config()->set('redis_sharding.rebalance.fence_enabled', true);
+        $source = DB::connection('source_shard');
+        $source->table('users')->insert(['id' => 1, 'name' => 'Alice']);
+        $wrote = false;
+
+        // Commit a real write through another connection immediately before
+        // the source DELETE executes, after the mover's final SELECT.
+        config()->set('database.connections.concurrent_writer', config('database.connections.source_shard'));
+        DB::purge('concurrent_writer');
+        $source->beforeExecuting(function (string $query) use (&$wrote): void {
+            if (! $wrote && str_starts_with(strtolower($query), 'delete')) {
+                $wrote = true;
+                DB::connection('concurrent_writer')->table('users')->where('id', 1)->update(['name' => 'Late write']);
+            }
+        });
+
+        try {
+            $mover = new DatabaseRebalanceDataMover();
+            $this->assertTrue($mover->move('users', 1, 'source_shard', 'target_shard'));
+            $this->assertTrue($wrote);
+            $this->assertSame('Late write', $source->table('users')->where('id', 1)->value('name'));
+            $this->assertSame('Late write', DB::connection('target_shard')->table('users')->where('id', 1)->value('name'));
+            $this->assertSame(1, $mover->fencedMoves());
+        } finally {
+            DB::purge('concurrent_writer');
+        }
+    }
+
+    public function test_case_insensitive_collation_does_not_hide_a_write_after_reread(): void
+    {
+        config()->set('redis_sharding.rebalance.table_key_columns', ['case_users' => 'id']);
+        config()->set('redis_sharding.rebalance.delete_source_after_copy', true);
+        config()->set('redis_sharding.rebalance.fence_enabled', true);
+        foreach (['source_shard', 'target_shard'] as $connection) {
+            DB::connection($connection)->statement('CREATE TABLE case_users (id INTEGER PRIMARY KEY, name TEXT COLLATE NOCASE, note TEXT NULL)');
+        }
+        $source = DB::connection('source_shard');
+        $source->table('case_users')->insert(['id' => 1, 'name' => 'Alice', 'note' => null]);
+        config()->set('database.connections.concurrent_writer', config('database.connections.source_shard'));
+        DB::purge('concurrent_writer');
+        $wrote = false;
+        $source->beforeExecuting(function (string $query) use (&$wrote): void {
+            if (! $wrote && str_starts_with(strtolower($query), 'delete')) {
+                $wrote = true;
+                DB::connection('concurrent_writer')->table('case_users')->where('id', 1)->update(['name' => 'ALICE']);
+            }
+        });
+
+        try {
+            $mover = new DatabaseRebalanceDataMover();
+            $this->assertTrue($mover->move('case_users', 1, 'source_shard', 'target_shard'));
+            $this->assertTrue($wrote);
+            $this->assertSame('ALICE', $source->table('case_users')->where('id', 1)->value('name'));
+            $this->assertSame('ALICE', DB::connection('target_shard')->table('case_users')->where('id', 1)->value('name'));
+            $this->assertSame(1, $mover->fencedMoves());
+        } finally {
+            DB::purge('concurrent_writer');
+        }
     }
 
     protected function configureConnections(): void
