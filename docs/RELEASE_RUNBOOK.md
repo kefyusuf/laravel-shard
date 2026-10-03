@@ -4,6 +4,10 @@ Bu runbook, `kefyusuf/laravel-shard` package release'lerini güvenli şekilde
 kapatmak için kullanılır. (Consumer-repo dispatch otomasyonu kaldırıldı —
 consumer doğrulaması artık manueldir.)
 
+Mimari gereksinimler, üretim hazırlığı ve tüketici uygulaması rollout kapıları
+için [Üretim Yol Haritası](PRODUCTION_ROADMAP.md) belgesini kullanın. Paket yayını
+tek başına tüketici verisinin güvenli şekilde canlıya taşındığını doğrulamaz.
+
 ## 1) Package Pre-Release
 
 1. `main` green olmalı (`tests`, `code-quality`, `docker-tests`, `consumer-smoke`).

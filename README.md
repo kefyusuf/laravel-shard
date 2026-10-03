@@ -24,7 +24,7 @@ A modular shard locator for Laravel applications that provides deterministic sha
 - **Tenancy Bridge**: Use `stancl/tenancy` or `spatie/laravel-multitenancy` with the tenant id as shard key (`REDIS_SHARD_TENANCY_DRIVER`)
 - **Read Replicas**: Map per-shard replica connections — reads go to the replica, writes stay on the shard
 - **Cross-Shard Transactions**: `ShardManager::transaction()` coordinates begin/commit/rollback across shards (best-effort, documented)
-- **Write-Fenced Rebalancing**: idempotent rebalance with write fencing — a concurrent write can never be lost; virtual buckets make resharding move ~1/N of the keys
+- **Write-Fenced Rebalancing**: resumable row moves with source-change detection and conditional deletion; virtual buckets limit planned moves to the assigned buckets
 
 ## 📋 Requirements
 
@@ -60,6 +60,7 @@ With `redis` disabled the package falls back to `ArrayShardLocator` (process-loc
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate existing applications
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization and benchmarks
 - **[Release Runbook](docs/RELEASE_RUNBOOK.md)** - Package + consumer release checklist
+- **[Production Roadmap](docs/PRODUCTION_ROADMAP.md)** - Architecture comparison, production readiness gaps, milestones, and rollout gates
 - **[Example Application](examples/ExampleApplication.md)** - Multi-tenant SaaS example
 - **[Load Testing](examples/LoadTestingExample.php)** - Performance testing tools
 
@@ -151,6 +152,16 @@ return [
 - Authoritative key-to-shard mappings are persisted in Redis and no longer expire automatically.
 - Auto-increment primary keys require an explicit shard key value, request shard binding, or explicit connection before insert.
 - `modulo` is suitable only for fixed shard topologies. Adding or removing shards with `modulo` requires planned data migration.
+
+## Known limitations
+
+- The default rebalance mover moves one row per key. Use an actual database unique constraint on the key in `rebalance.table_key_columns`; more than one matching source row causes an exception before any copy or delete. This runtime check does not establish schema uniqueness or prevent concurrent duplicate inserts. A non-unique tenant key does not define a supported tenant-wide move.
+- With write fencing enabled, source deletion compares all copied column values in a single conditional `DELETE`. Strings use bytewise comparisons on SQLite, MySQL/MariaDB, and PostgreSQL; numeric and null values use SQL equality and `IS NULL`. SQLite does not use `SELECT ... FOR UPDATE`. An unsupported driver's string snapshot is rejected before copying when source deletion and fencing are enabled. Binary/blob and other unsupported column types may need a custom mover; SQLite regression tests do not validate every production database or type.
+- Rebalance is not a distributed transaction or an online resharding protocol. A fence retains the source row, but the command can still update its mapping to the target. Quiesce writes during moves and reconcile retained source rows and both shard copies before cleanup; retries can overwrite target values.
+- Disabling write fencing removes the source-change check. Cross-shard transactions remain best-effort and cannot guarantee atomic commits across databases.
+- A queued job with a table and key uses the current locator mapping when one exists and never writes its captured mapping back to the locator. If the mapping is missing, or the context has no key, it retains its captured connection and cannot detect a moved record. The selected connection must still be configured.
+
+See [Rebalance Operations](docs/REBALANCE.md) for the move and retry behavior, and [Production Roadmap](docs/PRODUCTION_ROADMAP.md) for the remaining production readiness work.
 
 ## Supported Query Patterns
 
@@ -318,7 +329,7 @@ dispatchSharded(new SyncUserProfile(), $user);
 SyncUserProfile::dispatchSharded($user);
 ```
 
-`RestoreShardContext` job middleware rebinds the shard connection on the worker before `handle()` runs.
+`RestoreShardContext` job middleware rebinds the shard connection on the worker before `handle()` runs. For a context with a table and key, it uses the current locator mapping when one exists instead of the connection captured at dispatch. It never registers or recreates that mapping. If the mapping is missing, or the context has no key, it uses the captured connection; this fallback cannot detect migration. The selected connection must be configured.
 
 ### 6. Use middleware for request routing
 
@@ -1020,7 +1031,7 @@ $metrics = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class)->collectMetri
 
 ## 🆕 Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for the full release history (latest: **v5.0.0** — virtual bucket sharding, cross-shard transactions, deep-module refactor, read replicas, write fencing, Pulse/Octane/tenancy integrations).
+See [CHANGELOG.md](CHANGELOG.md) for the full release history (latest: **v5.0.1** — rebalance source-key validation, conditional source deletion, and current-mapping restoration for keyed queued jobs).
 
 ## 📝 License
 

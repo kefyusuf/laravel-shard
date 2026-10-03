@@ -36,19 +36,21 @@ class RestoreShardContext
 
     public function apply(ShardContext $context): void
     {
+        // Captured job affinity is a hint, not authority to move a mapping.
+        $connection = $context->connection;
+        if ($context->key !== null) {
+            $connection = app('shard.locator')->locate($context->table, $context->key) ?? $connection;
+        }
+
         $connections = app(\Laravel\RedisShard\Support\RedisShardConfig::class)->shardConnections();
 
-        if (! array_key_exists($context->connection, $connections)) {
+        if (! array_key_exists($connection, $connections)) {
             throw new ShardingException(sprintf(
                 'Cannot restore shard context: connection "%s" is not configured.',
-                $context->connection
+                $connection
             ));
         }
 
-        app(\Laravel\RedisShard\Support\RequestShardContext::class)->set($context->connection);
-
-        if ($context->key !== null) {
-            app('shard.locator')->register($context->table, $context->key, $context->connection);
-        }
+        app(\Laravel\RedisShard\Support\RequestShardContext::class)->set($connection);
     }
 }
