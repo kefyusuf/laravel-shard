@@ -9,7 +9,7 @@
 
 A modular shard locator for Laravel applications that provides deterministic shard routing for shard-key-aware Eloquent workflows. Redis-backed maps and shard-aware queues are optional modules.
 
-**Measured (2026-10-15):** 65 `*Test.php` files · 6 releases, latest [v5.0.1](https://github.com/kefyusuf/laravel-shard/releases/tag/v5.0.1) · CI: `Tests`, `Docker Tests`, `Code Quality`, `Consumer Smoke` · 5 ADRs in [docs/adr/](docs/adr/) holding the routing, bucket-count, write-fence, cross-shard-commit and replica-selection decisions · mutation score: not measured. Production status is governed by [docs/PRODUCTION_ROADMAP.md](docs/PRODUCTION_ROADMAP.md), whose R1–R6 risk list is the current gate, not this feature list.
+**Measured (2026-10-15):** 65 `*Test.php` files · 6 releases, latest [v5.0.1](https://github.com/kefyusuf/laravel-shard/releases/tag/v5.0.1) · CI: `Tests` (276 tests, 725 assertions, 1 skipped on the PHP 8.2–8.4 × Laravel 10–13 matrix), `Docker Tests`, `Code Quality`, `Consumer Smoke` · 5 ADRs in [docs/adr/](docs/adr/) holding the routing, bucket-count, write-fence, cross-shard-commit and replica-selection decisions · mutation score: not measured. Production status is governed by [docs/PRODUCTION_ROADMAP.md](docs/PRODUCTION_ROADMAP.md), whose R1–R6 risk list is the current gate, not this feature list.
 
 ## ✨ Features
 
@@ -512,7 +512,7 @@ Common payload conventions:
 
 ### Built-in Monitoring System
 
-The package includes a comprehensive monitoring system that tracks shard health, performance, and distribution:
+`ShardMonitor` has two methods, `collectMetrics()` and `getMetrics()`, and returns the per-shard structure below:
 
 ```php
 use Laravel\RedisShard\Monitoring\ShardMonitor;
@@ -520,7 +520,7 @@ use Laravel\RedisShard\Monitoring\ShardMonitor;
 $monitor = app(ShardMonitor::class);
 $metrics = $monitor->collectMetrics();
 
-// Complete metrics structure
+// Structure returned by collectMetrics()
 $metrics = [
     'timestamp' => '2024-01-15T10:30:00Z',
     'shards' => [
@@ -683,7 +683,7 @@ $shardInfo = $user->getShardInfo();
 
 ## 🛡️ Configuration Validation
 
-The package includes comprehensive configuration validation to prevent common setup issues:
+`ConfigValidator::validate()` runs six checks over the `redis_sharding` config array and is called from the service provider during boot whenever `connections` is non-empty, in every environment including testing; `strict_validation` (default `true`) decides whether a failure throws `ConfigurationException` or only warns:
 
 ```php
 use Laravel\RedisShard\Validation\ConfigValidator;
@@ -703,22 +703,23 @@ foreach ($recommendations as $recommendation) {
 }
 ```
 
-### Configuration Features
+### What each validator checks
 
-- **Connection Validation**: Ensures all shard connections are properly configured
-- **Strategy Validation**: Validates sharding strategy classes and interfaces
-- **Redis Validation**: Checks Redis connection configuration
-- **Auto-Provisioning Validation**: Validates auto-scaling settings
-- **Helpful Recommendations**: Provides optimization suggestions
+- `validateRedisConnection()` — the Redis connection entry
+- `validateStrategies()` — the strategy classes and the interfaces they implement
+- `validateConnections()` and `validateConnectionConfig()` — every named connection and its own settings
+- `validateAutoProvisioning()` — the auto-provisioning block
+- `validateCacheTtl()` — the cache TTL
+- `getRecommendations()` — returns one `['type' => …, 'message' => …]` entry per finding
 
-## 🧪 Comprehensive Testing
+## 🧪 Testing
 
-The package includes extensive testing coverage:
+65 `*Test.php` files: 40 under `tests/Unit`, 23 under `tests/Feature`, 2 under `tests/Integration`. The `Tests` workflow runs them across PHP 8.2–8.4 and Laravel 10–13 and reports **276 tests, 725 assertions, 1 skipped** (read from its log on 2026-10-15).
 
 ### Test Suites
 
 ```bash
-# Run all tests (260+ tests across Unit, Feature and Integration suites)
+# Run all tests (276 in the CI matrix; needs a local Redis — the predis lanes error without one)
 vendor/bin/phpunit
 
 # Run a specific suite
