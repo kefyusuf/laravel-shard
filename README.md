@@ -56,7 +56,7 @@ With `redis` disabled the package falls back to `ArrayShardLocator` (process-loc
 ## 📚 Documentation
 
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get started in 5 minutes
-- **[API Reference](docs/API.md)** - Complete API documentation
+- **[API Reference](docs/API.md)** - 22 sections: `ShardManager`, `ShardLocator`, the `Shardable`/`CrossShardQueryable` traits, the strategies, five of the ten registered artisan commands (`shard:create`, `shard:status`, `shard:health`, `shard:analyze`, `shard:rebalance`), configuration and exceptions
 - **[Rebalance Operations](docs/REBALANCE.md)** - Dry-run, gradual moves, idempotent rebalance, write fencing, virtual buckets
 - **[Cross-Shard Transactions](docs/TRANSACTIONS.md)** - `ShardManager::transaction()` semantics and reconciliation patterns
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate existing applications
@@ -1026,10 +1026,10 @@ $metrics = app(\Laravel\RedisShard\Monitoring\ShardMonitor::class)->collectMetri
 
 ## 📚 Additional Resources
 
-- **[Examples Directory](examples/)** - Complete working examples
-- **[Test Suite](tests/)** - Comprehensive test coverage
-- **[Configuration Reference](config/redis_sharding.php)** - Full configuration options
-- **[API Documentation](docs/)** - Detailed API reference
+- **[Examples Directory](examples/)** - 6 files: `User.php`, `UserController.php`, `routes/web.php`, `LoadTestingExample.php`, `smoke.php`, `ExampleApplication.md`
+- **[Test Suite](tests/)** - 65 `*Test.php` files; CI lanes: Tests, Docker Tests, Code Quality, Consumer Smoke
+- **[Configuration Reference](config/redis_sharding.php)** - the options the package actually reads
+- **[API Documentation](docs/)** - `docs/API.md` (22 sections) plus the topic docs listed above
 
 ## 🆕 Changelog
 
