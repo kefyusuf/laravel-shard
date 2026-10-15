@@ -588,7 +588,7 @@ $stats = $cache->getStats();
 
 ### Cross-Shard Query Builder
 
-The package now includes a powerful cross-shard query builder that allows you to query across all shards seamlessly:
+The `CrossShardQueryable` trait adds 12 static methods — `crossShard`, `searchAcrossShards`, `findAcrossShards`, `countAcrossShards`, `aggregateAcrossShards`, `searchLikeAcrossShards`, `recentAcrossShards`, `paginateAcrossShards`, `batchUpdateAcrossShards`, `batchDeleteAcrossShards`, `getShardDistribution`, `executeOnAllShards`:
 
 ```php
 // Use the CrossShardQueryable trait in your models
