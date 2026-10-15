@@ -9,6 +9,8 @@
 
 A modular shard locator for Laravel applications that provides deterministic shard routing for shard-key-aware Eloquent workflows. Redis-backed maps and shard-aware queues are optional modules.
 
+**Measured (2026-10-15):** 65 `*Test.php` files · 6 releases, latest [v5.0.1](https://github.com/kefyusuf/laravel-shard/releases/tag/v5.0.1) · CI: `Tests`, `Docker Tests`, `Code Quality`, `Consumer Smoke` · 5 ADRs in [docs/adr/](docs/adr/) holding the routing, bucket-count, write-fence, cross-shard-commit and replica-selection decisions · mutation score: not measured. Production status is governed by [docs/PRODUCTION_ROADMAP.md](docs/PRODUCTION_ROADMAP.md), whose R1–R6 risk list is the current gate, not this feature list.
+
 ## ✨ Features
 
 - **Deterministic Shard Routing**: Route shard-key-aware reads and writes to the correct shard
